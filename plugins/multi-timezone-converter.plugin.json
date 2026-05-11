@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "multi-timezone-converter",
+    "name": "Multi-Timezone Converter",
+    "category": "Conversion",
+    "description": "Takes a datetime string and shows it across 12 major timezones simultaneously.",
+    "keywords": ["timezone", "time", "convert", "utc", "date", "world clock", "datetime"],
+    "tags": ["Office Worker", "Programmer", "Student"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const t = input.trim();\nreturn /\\d{4}[\\-/]\\d{1,2}[\\-/]\\d{1,2}/.test(t) || /\\d{1,2}[:\\.h]\\d{2}/.test(t) ? 0.88 : 0;",
+    "executeCode": "const ZONES = [\n  { label: 'UTC',              tz: 'UTC' },\n  { label: 'New York (ET)',    tz: 'America/New_York' },\n  { label: 'Chicago (CT)',     tz: 'America/Chicago' },\n  { label: 'Denver (MT)',      tz: 'America/Denver' },\n  { label: 'Los Angeles (PT)',tz: 'America/Los_Angeles' },\n  { label: 'London (GMT/BST)',tz: 'Europe/London' },\n  { label: 'Paris (CET/CEST)',tz: 'Europe/Paris' },\n  { label: 'Moscow (MSK)',    tz: 'Europe/Moscow' },\n  { label: 'Dubai (GST)',     tz: 'Asia/Dubai' },\n  { label: 'India (IST)',     tz: 'Asia/Kolkata' },\n  { label: 'Singapore (SGT)',tz: 'Asia/Singapore' },\n  { label: 'Tokyo (JST)',     tz: 'Asia/Tokyo' },\n  { label: 'Sydney (AET)',    tz: 'Australia/Sydney' },\n];\n\nconst t = input.trim();\nlet dt = new Date(t);\nif (isNaN(dt.getTime())) {\n  // Try to handle common formats\n  dt = new Date(t.replace(/\\//g, '-'));\n}\nif (isNaN(dt.getTime())) {\n  return { output: '', error: 'Could not parse the datetime. Try ISO 8601 format: 2024-07-15T14:30:00Z' };\n}\n\nconst maxLen = Math.max(...ZONES.map(z => z.label.length));\nconst lines = [`Input:  ${dt.toISOString()}`, ''];\nfor (const { label, tz } of ZONES) {\n  try {\n    const str = dt.toLocaleString('en-US', {\n      timeZone: tz,\n      weekday: 'short',\n      year: 'numeric', month: 'short', day: '2-digit',\n      hour: '2-digit', minute: '2-digit', second: '2-digit',\n      hour12: false,\n    });\n    lines.push(label.padEnd(maxLen) + '  ' + str);\n  } catch {\n    lines.push(label.padEnd(maxLen) + '  (unavailable)');\n  }\n}\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+  }
+}

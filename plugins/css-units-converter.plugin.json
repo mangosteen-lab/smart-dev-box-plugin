@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "css-units-converter",
+    "name": "CSS Units Converter",
+    "category": "Conversion",
+    "description": "Converts between px, rem, em, pt, and vw CSS units given a base font size and viewport width.",
+    "keywords": ["css", "units", "px", "rem", "em", "pt", "vw", "convert", "responsive"],
+    "tags": ["Programmer"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const t = input.trim();\nreturn /[\\d.]+\\s*(px|rem|em|pt|vw)\\b/i.test(t) ? 0.93 : 0;",
+    "executeCode": "// Extract optional base font size and viewport width from input\nconst baseMatch = input.match(/base[:\\s]+([\\d.]+)\\s*px/i);\nconst vpMatch = input.match(/viewport[:\\s]+([\\d.]+)\\s*px/i);\nconst BASE_FONT = baseMatch ? parseFloat(baseMatch[1]) : 16;\nconst VIEWPORT  = vpMatch  ? parseFloat(vpMatch[1])  : 1440;\n\nconst re = /(-?[\\d.]+)\\s*(px|rem|em|pt|vw)\\b/gi;\nconst lines = [\n  `Base font size: ${BASE_FONT}px`,\n  `Viewport width: ${VIEWPORT}px`,\n  '',\n];\nlet m;\nwhile ((m = re.exec(input)) !== null) {\n  const val  = parseFloat(m[1]);\n  const unit = m[2].toLowerCase();\n  let px;\n  if      (unit === 'px')  px = val;\n  else if (unit === 'rem') px = val * BASE_FONT;\n  else if (unit === 'em')  px = val * BASE_FONT;\n  else if (unit === 'pt')  px = val * 1.3333;\n  else if (unit === 'vw')  px = val * VIEWPORT / 100;\n  const rem = px / BASE_FONT;\n  const pt  = px / 1.3333;\n  const vw  = px / VIEWPORT * 100;\n  lines.push(`${val}${unit}`);\n  lines.push(`  px:   ${px.toFixed(3)}`);\n  lines.push(`  rem:  ${rem.toFixed(4)}`);\n  lines.push(`  em:   ${rem.toFixed(4)}`);\n  lines.push(`  pt:   ${pt.toFixed(3)}`);\n  lines.push(`  vw:   ${vw.toFixed(4)}%`);\n  lines.push('');\n}\nif (lines.length <= 3) return { output: '', error: 'No CSS values found. Try \"16px\" or \"1rem\".' };\nreturn { output: lines.join('\\n').trimEnd(), outputLanguage: 'text' };"
+  }
+}

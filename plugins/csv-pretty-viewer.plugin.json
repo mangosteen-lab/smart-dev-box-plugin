@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "csv-pretty-viewer",
+    "name": "CSV Pretty Viewer",
+    "category": "Conversion",
+    "description": "Renders CSV as a fixed-width ASCII table for quick visual inspection.",
+    "keywords": ["csv", "table", "ascii", "preview", "pretty", "viewer"],
+    "tags": ["Programmer", "Student", "Office Worker"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const lines = input.trim().split('\\n').filter(Boolean);\nif (lines.length < 2) return 0;\nconst commas = lines.map(l => (l.match(/,/g) || []).length);\nconst consistent = commas.every(c => c === commas[0]) && commas[0] > 0;\nreturn consistent ? 0.85 : 0;",
+    "executeCode": "function parseCSVLine(line) {\n  const cells = [];\n  let cur = '', inQuote = false;\n  for (let i = 0; i < line.length; i++) {\n    const ch = line[i];\n    if (ch === '\"') {\n      if (inQuote && line[i+1] === '\"') { cur += '\"'; i++; }\n      else inQuote = !inQuote;\n    } else if (ch === ',' && !inQuote) {\n      cells.push(cur); cur = '';\n    } else {\n      cur += ch;\n    }\n  }\n  cells.push(cur);\n  return cells.map(c => c.trim());\n}\n\nconst lines = input.trim().split('\\n').filter(Boolean);\nconst rows = lines.map(parseCSVLine);\nconst colCount = Math.max(...rows.map(r => r.length));\nfor (const r of rows) while (r.length < colCount) r.push('');\nconst widths = Array.from({ length: colCount }, (_, i) =>\n  Math.max(1, ...rows.map(r => r[i].length))\n);\nfunction rule(left, mid, right, fill) {\n  return left + widths.map(w => fill.repeat(w + 2)).join(mid) + right;\n}\nconst top = rule('+', '+', '+', '-');\nconst mid = rule('+', '+', '+', '-');\nconst bot = rule('+', '+', '+', '-');\nconst fmt = row => '|' + row.map((c, i) => ' ' + c.padEnd(widths[i]) + ' ').join('|') + '|';\nconst [header, ...body] = rows;\nconst out = [top, fmt(header), mid, ...body.map(fmt), bot].join('\\n');\nreturn { output: out, outputLanguage: 'text' };"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "bytes-formatter",
+    "name": "Bytes Formatter",
+    "category": "Conversion",
+    "description": "Converts raw byte counts to human-readable sizes in both SI (KB, MB, GB) and binary (KiB, MiB, GiB) units.",
+    "keywords": ["bytes", "kb", "mb", "gb", "kib", "mib", "gib", "size", "storage", "format"],
+    "tags": ["Programmer", "Student"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const t = input.trim();\nreturn /^\\d[\\d,_]*\\s*(bytes?|b|kb|mb|gb|kib|mib|gib)?$/i.test(t) ? 0.92 : 0;",
+    "executeCode": "const raw = input.trim().replace(/[,_]/g, '');\nconst m = raw.match(/^([\\d.]+)\\s*(bytes?|b|kb|mb|gb|kib|mib|gib)?$/i);\nif (!m) return { output: '', error: 'Enter a byte count, e.g. \"1048576\" or \"1.5 GB\".' };\nconst val = parseFloat(m[1]);\nconst unit = (m[2] || 'b').toLowerCase();\nconst MULTIPLIERS = {\n  b: 1, byte: 1, bytes: 1,\n  kb: 1e3, mb: 1e6, gb: 1e9, tb: 1e12,\n  kib: 1024, mib: 1024**2, gib: 1024**3, tib: 1024**4,\n};\nconst bytes = val * (MULTIPLIERS[unit] || 1);\n\nfunction si(b) {\n  const units = ['B','KB','MB','GB','TB','PB'];\n  let i = 0;\n  while (b >= 1000 && i < units.length - 1) { b /= 1000; i++; }\n  return b.toFixed(i > 0 ? 3 : 0) + ' ' + units[i];\n}\nfunction binary(b) {\n  const units = ['B','KiB','MiB','GiB','TiB','PiB'];\n  let i = 0;\n  while (b >= 1024 && i < units.length - 1) { b /= 1024; i++; }\n  return b.toFixed(i > 0 ? 4 : 0) + ' ' + units[i];\n}\n\nconst lines = [\n  `Raw bytes:     ${bytes.toLocaleString()} B`,\n  `SI (decimal):  ${si(bytes)}`,\n  `Binary (IEC):  ${binary(bytes)}`,\n  '',\n  '--- All SI ---',\n  `  Kilobytes:   ${(bytes / 1e3).toFixed(3)} KB`,\n  `  Megabytes:   ${(bytes / 1e6).toFixed(6)} MB`,\n  `  Gigabytes:   ${(bytes / 1e9).toFixed(9)} GB`,\n  '',\n  '--- All Binary ---',\n  `  Kibibytes:   ${(bytes / 1024).toFixed(4)} KiB`,\n  `  Mebibytes:   ${(bytes / 1024**2).toFixed(6)} MiB`,\n  `  Gibibytes:   ${(bytes / 1024**3).toFixed(9)} GiB`,\n];\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+  }
+}

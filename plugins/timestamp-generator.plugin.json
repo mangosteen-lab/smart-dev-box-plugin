@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0",
+  "plugin": {
+    "type": "generator",
+    "id": "timestamp-generator",
+    "name": "Timestamp",
+    "description": "Generates timestamps in various formats — Unix epoch, ISO 8601, or RFC 2822.",
+    "outputExtension": "txt",
+    "options": [
+      {
+        "type": "select",
+        "key": "format",
+        "label": "Format",
+        "defaultValue": "iso",
+        "choices": ["iso", "unix-ms", "unix-s", "rfc2822", "date-only", "time-only"]
+      },
+      {
+        "type": "toggle",
+        "key": "utc",
+        "label": "UTC (vs local)",
+        "defaultValue": true
+      },
+      {
+        "type": "number",
+        "key": "count",
+        "label": "Count",
+        "defaultValue": 1,
+        "min": 1,
+        "max": 50
+      }
+    ],
+    "generateCode": "const now = Date.now();\nconst fmt = options.format ?? 'iso';\nconst utc = options.utc !== false;\nconst count = Math.max(1, Math.min(50, Number(options.count ?? 1)));\nconst results = [];\nfor (let i = 0; i < count; i++) {\n  const t = now + i;\n  const d = new Date(t);\n  if (fmt === 'unix-ms') results.push(String(t));\n  else if (fmt === 'unix-s') results.push(String(Math.floor(t / 1000)));\n  else if (fmt === 'rfc2822') results.push(d.toUTCString());\n  else if (fmt === 'date-only') results.push(utc ? d.toISOString().slice(0, 10) : d.toLocaleDateString());\n  else if (fmt === 'time-only') results.push(utc ? d.toISOString().slice(11, 19) + 'Z' : d.toLocaleTimeString());\n  else results.push(utc ? d.toISOString() : d.toString());\n}\nreturn { output: results.join('\\n'), outputLanguage: 'text' };",
+    "updatedAt": "2025-01-01T00:00:00.000Z",
+    "tags": ["Programmer"]
+  }
+}

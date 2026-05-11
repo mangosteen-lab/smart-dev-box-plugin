@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "whitespace-normalizer",
+    "name": "Whitespace Normalizer",
+    "category": "Text",
+    "description": "Collapses multiple spaces, strips trailing whitespace, and normalizes line endings to LF.",
+    "keywords": ["whitespace", "normalize", "spaces", "trim", "line endings", "clean"],
+    "tags": ["Programmer", "Office Worker"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "if (!input) return 0;\nconst hasTrailing = /[ \\t]+$/m.test(input);\nconst hasDouble   = / {2,}/.test(input);\nconst hasCRLF     = /\\r\\n/.test(input);\nreturn (hasTrailing || hasDouble || hasCRLF) ? 0.92 : 0.1;",
+    "executeCode": "const original = input;\n// Normalize CRLF and CR to LF\nlet out = input.replace(/\\r\\n/g, '\\n').replace(/\\r/g, '\\n');\n// Collapse multiple spaces/tabs within lines (preserve indentation intent)\nout = out.split('\\n').map(line => {\n  // Strip trailing whitespace\n  line = line.replace(/[ \\t]+$/, '');\n  // Collapse multiple spaces to single (not at line start)\n  line = line.replace(/(?<=\\S) {2,}/g, ' ');\n  return line;\n}).join('\\n');\n// Collapse more than 2 consecutive blank lines to 2\nout = out.replace(/\\n{3,}/g, '\\n\\n');\n// Ensure single trailing newline\nout = out.trimEnd() + '\\n';\nconst origLines = original.split(/\\r?\\n/).length;\nconst newLines  = out.split('\\n').length;\nconst summary = `// Whitespace normalized: ${origLines} → ${newLines} lines\\n// CRLF→LF, trailing spaces removed, multiple spaces collapsed\\n\\n`;\nreturn { output: out, outputLanguage: 'text' };"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "generator",
+    "id": "fake-person-generator",
+    "name": "Fake Person Data Generator",
+    "category": "Generation",
+    "description": "Generates fake names, emails, phone numbers, and addresses for test data.",
+    "keywords": ["fake", "test data", "person", "name", "email", "phone", "address", "mock"],
+    "tags": ["Programmer", "Student"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "options": [
+      {
+        "type": "number",
+        "key": "count",
+        "label": "Count",
+        "defaultValue": 5,
+        "min": 1,
+        "max": 50
+      },
+      {
+        "type": "select",
+        "key": "format",
+        "label": "Output Format",
+        "defaultValue": "text",
+        "choices": ["text", "json", "csv"]
+      }
+    ],
+    "generateCode": "const FIRST = ['James','Mary','Robert','Patricia','John','Jennifer','Michael','Linda','William','Barbara','David','Susan','Richard','Jessica','Joseph','Sarah','Thomas','Karen','Charles','Lisa','Christopher','Nancy','Daniel','Betty','Matthew','Margaret','Anthony','Sandra','Mark','Ashley','Donald','Dorothy','Steven','Kimberly','Paul','Emily','Andrew','Donna','Joshua','Michelle','Kenneth','Carol','Kevin','Amanda','Brian','Melissa','Timothy','Deborah','Ronald','Stephanie'];\nconst LAST = ['Smith','Johnson','Williams','Brown','Jones','Garcia','Miller','Davis','Martinez','Hernandez','Lopez','Gonzalez','Wilson','Anderson','Thomas','Taylor','Moore','Jackson','Martin','Lee','Perez','Thompson','White','Harris','Sanchez','Clark','Lewis','Robinson','Walker','Young','Allen','King','Wright','Scott','Torres','Hill','Flores','Green','Adams','Nelson','Baker','Hall','Rivera','Campbell','Mitchell','Carter','Roberts'];\nconst DOMAINS = ['gmail.com','yahoo.com','outlook.com','icloud.com','proton.me','company.com','example.org'];\nconst STREETS = ['Main St','Oak Ave','Maple Dr','Cedar Ln','Pine Rd','Elm St','Park Blvd','Lake View Dr','Summit Way','Riverside Rd'];\nconst CITIES = ['Springfield','Riverside','Fairview','Madison','Georgetown','Franklin','Bristol','Salem','Greenfield','Oakland'];\nconst STATES = ['CA','TX','FL','NY','PA','IL','OH','GA','NC','MI'];\n\nfunction rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }\nfunction phone() {\n  const a = Math.floor(Math.random()*800)+200;\n  const b = Math.floor(Math.random()*900)+100;\n  const c = Math.floor(Math.random()*9000)+1000;\n  return `(${a}) ${b}-${c}`;\n}\n\nconst count = Math.max(1, Math.min(50, Number(options.count ?? 5)));\nconst fmt = options.format ?? 'text';\nconst people = [];\nfor (let i = 0; i < count; i++) {\n  const first = rand(FIRST);\n  const last = rand(LAST);\n  const email = `${first.toLowerCase()}.${last.toLowerCase()}${Math.floor(Math.random()*99)+1}@${rand(DOMAINS)}`;\n  const address = `${Math.floor(Math.random()*9000)+100} ${rand(STREETS)}, ${rand(CITIES)}, ${rand(STATES)} ${String(Math.floor(Math.random()*90000)+10000)}`;\n  people.push({ name: `${first} ${last}`, email, phone: phone(), address });\n}\n\nlet output;\nif (fmt === 'json') {\n  output = JSON.stringify(people, null, 2);\n} else if (fmt === 'csv') {\n  const hdr = 'Name,Email,Phone,Address';\n  const rows = people.map(p => `\"${p.name}\",\"${p.email}\",\"${p.phone}\",\"${p.address}\"`);\n  output = [hdr, ...rows].join('\\n');\n} else {\n  output = people.map((p, i) =>\n    `#${i+1}\\n  Name:    ${p.name}\\n  Email:   ${p.email}\\n  Phone:   ${p.phone}\\n  Address: ${p.address}`\n  ).join('\\n\\n');\n}\nreturn { output, outputLanguage: fmt === 'json' ? 'json' : 'text' };"
+  }
+}

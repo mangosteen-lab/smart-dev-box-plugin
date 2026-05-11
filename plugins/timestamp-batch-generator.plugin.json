@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "generator",
+    "id": "timestamp-batch-generator",
+    "name": "Timestamp Batch Generator",
+    "category": "Generation",
+    "description": "Produces a sequence of timestamps at a configurable interval and format.",
+    "keywords": ["timestamp", "batch", "sequence", "interval", "time", "generate", "dates"],
+    "tags": ["Programmer"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "options": [
+      {
+        "type": "text",
+        "key": "start",
+        "label": "Start (ISO 8601 or blank for now)",
+        "defaultValue": ""
+      },
+      {
+        "type": "number",
+        "key": "count",
+        "label": "Count",
+        "defaultValue": 10,
+        "min": 1,
+        "max": 200
+      },
+      {
+        "type": "number",
+        "key": "intervalSeconds",
+        "label": "Interval (seconds)",
+        "defaultValue": 60,
+        "min": 1
+      },
+      {
+        "type": "select",
+        "key": "format",
+        "label": "Format",
+        "defaultValue": "iso",
+        "choices": ["iso", "unix-s", "unix-ms", "rfc2822", "date-only", "time-only"]
+      }
+    ],
+    "generateCode": "const count = Math.max(1, Math.min(200, Number(options.count ?? 10)));\nconst interval = Math.max(1, Number(options.intervalSeconds ?? 60)) * 1000;\nconst fmt = options.format ?? 'iso';\nconst startRaw = (options.start ?? '').trim();\nlet startMs = startRaw ? new Date(startRaw).getTime() : Date.now();\nif (isNaN(startMs)) startMs = Date.now();\n\nconst results = [];\nfor (let i = 0; i < count; i++) {\n  const t = startMs + i * interval;\n  const d = new Date(t);\n  if (fmt === 'unix-ms') results.push(String(t));\n  else if (fmt === 'unix-s') results.push(String(Math.floor(t / 1000)));\n  else if (fmt === 'rfc2822') results.push(d.toUTCString());\n  else if (fmt === 'date-only') results.push(d.toISOString().slice(0, 10));\n  else if (fmt === 'time-only') results.push(d.toISOString().slice(11, 19) + 'Z');\n  else results.push(d.toISOString());\n}\nreturn { output: results.join('\\n'), outputLanguage: 'text' };"
+  }
+}

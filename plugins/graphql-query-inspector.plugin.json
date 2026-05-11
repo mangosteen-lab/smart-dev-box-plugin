@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "graphql-query-inspector",
+    "name": "GraphQL Query Inspector",
+    "category": "Inspection",
+    "description": "Validates and summarizes a GraphQL query or mutation — fields, variables, and operation name.",
+    "keywords": ["graphql", "query", "mutation", "fragment", "schema", "api", "gql"],
+    "tags": ["Programmer"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const t = input.trim();\nreturn (/\\b(query|mutation|subscription|fragment)\\b/.test(t) && t.includes('{') && t.includes('}')) ? 0.95 : 0;",
+    "executeCode": "const t = input.trim();\n// Extract operation type and name\nconst opMatch = t.match(/^\\s*(query|mutation|subscription|fragment)\\s*(\\w*)\\s*(\\([^)]*\\))?/i);\nconst opType = opMatch ? opMatch[1] : 'anonymous';\nconst opName = opMatch && opMatch[2] ? opMatch[2] : '(unnamed)';\nconst varBlock = opMatch && opMatch[3] ? opMatch[3] : null;\n\n// Extract variables\nconst vars = [];\nif (varBlock) {\n  const varRe = /\\$(\\w+)\\s*:\\s*([\\w!\\[\\]]+)/g;\n  let vm;\n  while ((vm = varRe.exec(varBlock)) !== null) {\n    vars.push({ name: vm[1], type: vm[2] });\n  }\n}\n\n// Count braces depth to estimate nesting\nlet depth = 0, maxDepth = 0;\nfor (const ch of t) {\n  if (ch === '{') { depth++; maxDepth = Math.max(maxDepth, depth); }\n  else if (ch === '}') depth--;\n}\n\n// Extract field names (simple heuristic: words before { or followed by selections)\nconst fields = [...t.matchAll(/^\\s+(\\w+)\\s*[({\\n]/mg)].map(m => m[1]);\nconst uniqueFields = [...new Set(fields)];\n\n// Check for fragments used\nconst fragmentsUsed = [...t.matchAll(/\\.\\.\\.([A-Z]\\w*)/g)].map(m => m[1]);\n\nconst lines = [\n  `Operation Type: ${opType}`,\n  `Operation Name: ${opName}`,\n  `Max Nesting:    ${maxDepth - 1} levels`,\n  '',\n];\nif (vars.length > 0) {\n  lines.push('Variables:');\n  vars.forEach(v => lines.push(`  $${v.name}: ${v.type}`));\n  lines.push('');\n}\nif (uniqueFields.length > 0) {\n  lines.push('Fields referenced (heuristic):');\n  lines.push('  ' + uniqueFields.slice(0, 20).join(', ') + (uniqueFields.length > 20 ? ', ...' : ''));\n  lines.push('');\n}\nif (fragmentsUsed.length > 0) {\n  lines.push('Fragments used: ' + fragmentsUsed.join(', '));\n}\nlines.push('Syntax: ' + (depth === 0 ? 'OK (balanced braces)' : 'WARNING: unbalanced braces'));\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+  }
+}

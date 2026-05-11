@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "text-diff",
+    "name": "Text Diff",
+    "category": "Text",
+    "description": "Shows line-by-line differences between two blocks of text. Separate the two blocks with a line containing only '---'.",
+    "keywords": ["diff", "compare", "text", "difference", "lines", "changes"],
+    "tags": ["Programmer", "Office Worker"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "return /^-{3,}$/m.test(input.trim()) ? 0.9 : 0;",
+    "executeCode": "const parts = input.split(/^-{3,}$/m);\nif (parts.length < 2) {\n  return { output: '', error: 'Could not find delimiter. Separate two text blocks with a line containing only \"---\".' };\n}\nconst linesA = parts[0].split('\\n');\nconst linesB = parts.slice(1).join('---').split('\\n');\n// Remove leading/trailing empty lines from each block\nwhile (linesA.length && !linesA[0].trim()) linesA.shift();\nwhile (linesA.length && !linesA[linesA.length-1].trim()) linesA.pop();\nwhile (linesB.length && !linesB[0].trim()) linesB.shift();\nwhile (linesB.length && !linesB[linesB.length-1].trim()) linesB.pop();\n\nconst maxLen = Math.max(linesA.length, linesB.length);\nconst output = [];\nlet added = 0, removed = 0, changed = 0;\nfor (let i = 0; i < maxLen; i++) {\n  const a = linesA[i];\n  const b = linesB[i];\n  if (a === undefined) { output.push('+ ' + b); added++; }\n  else if (b === undefined) { output.push('- ' + a); removed++; }\n  else if (a === b) { output.push('  ' + a); }\n  else { output.push('- ' + a); output.push('+ ' + b); changed++; }\n}\noutput.unshift(`@@ -${linesA.length} lines / +${linesB.length} lines  [+${added} added, -${removed} removed, ~${changed} changed] @@`, '');\nreturn { output: output.join('\\n'), outputLanguage: 'diff' };"
+  }
+}

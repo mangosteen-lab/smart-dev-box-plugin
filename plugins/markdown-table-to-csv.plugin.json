@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "markdown-table-to-csv",
+    "name": "Markdown Table → CSV",
+    "category": "Conversion",
+    "description": "Converts a Markdown pipe table into CSV format.",
+    "keywords": ["markdown", "table", "csv", "convert", "pipe", "export"],
+    "tags": ["Programmer", "Student", "Office Worker"],
+    "outputExtension": "csv",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const hasTable = /^\\|.+\\|/m.test(input) && /^\\|[-| :]+\\|/m.test(input);\nreturn hasTable ? 0.97 : 0;",
+    "executeCode": "const lines = input.split('\\n').filter(l => /^\\|/.test(l.trim()));\nconst rows = [];\nfor (const line of lines) {\n  // Skip separator rows\n  if (/^\\|[-| :]+\\|\\s*$/.test(line.trim())) continue;\n  const cells = line.trim().replace(/^\\|/, '').replace(/\\|$/, '').split('|').map(c => {\n    const v = c.trim();\n    // Quote cells that contain commas, newlines, or double-quotes\n    if (v.includes(',') || v.includes('\"') || v.includes('\\n')) {\n      return '\"' + v.replace(/\"/g, '\"\"') + '\"';\n    }\n    return v;\n  });\n  rows.push(cells.join(','));\n}\nif (rows.length === 0) return { output: '', error: 'No Markdown table found.' };\nreturn { output: rows.join('\\n'), outputLanguage: 'csv' };"
+  }
+}

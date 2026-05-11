@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "emoji-picker",
+    "name": "Emoji Picker / Searcher",
+    "category": "Generation",
+    "description": "Search and copy emojis by name or keyword. Outputs the character, its name, and Unicode code point.",
+    "keywords": ["emoji", "search", "unicode", "icon", "symbol", "picker"],
+    "tags": ["Office Worker", "Student", "Programmer"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const t = input.trim().toLowerCase();\n// Short query words, likely an emoji search\nconst words = t.split(/\\s+/);\nreturn words.length <= 5 && words.every(w => /^[a-z]+$/.test(w)) && t.length < 60 ? 0.6 : 0;",
+    "executeCode": "const EMOJIS = [\n  ['😀','grinning face','smile happy grin'],['😂','face with tears of joy','laugh funny lol'],['🥰','smiling face with hearts','love heart adore'],['😎','smiling face with sunglasses','cool sunglasses'],['🤔','thinking face','think ponder hmm'],['😢','crying face','sad cry tear'],['😡','enraged face','angry mad rage'],['🎉','party popper','party celebrate confetti'],['🔥','fire','fire hot flame burn'],['💡','light bulb','idea light bulb'],['✅','check mark button','check done ok yes'],['❌','cross mark','no cancel wrong error'],['⚠️','warning','warning caution alert'],['🚀','rocket','rocket launch space fast'],['🐛','bug','bug insect error debug'],['🔒','locked','lock security private'],['🔓','unlocked','unlock open'],['📝','memo','note write document'],['📊','bar chart','chart graph data analytics'],['📅','calendar','calendar date schedule'],['⏰','alarm clock','time alarm clock'],['🔍','magnifying glass tilted left','search find look'],['💬','speech bubble','comment chat message talk'],['📧','e-mail','email mail message'],['📁','file folder','folder directory files'],['🌐','globe with meridians','web internet global'],['💻','laptop','computer laptop code'],['📱','mobile phone','phone mobile smartphone'],['🖥️','desktop computer','desktop pc monitor'],['⌨️','keyboard','keyboard type input'],['🖱️','computer mouse','mouse click cursor'],['📦','package','package box shipping'],['🏠','house','home house'],['🏢','office building','office building work'],['🌟','glowing star','star featured important'],['❤️','red heart','love heart'],['💯','hundred points','100 percent perfect'],['👍','thumbs up','like good approve ok'],['👎','thumbs down','dislike bad'],['🙏','folded hands','please thanks pray'],['💪','flexed biceps','strong muscle power'],['🎯','direct hit','target goal bullseye'],['🧠','brain','brain smart think intelligence'],['👀','eyes','look see watch'],['💀','skull','dead skull danger'],['🤖','robot','robot bot ai machine'],['🦄','unicorn','unicorn special magic'],['🐍','snake','snake python'],['🦊','fox','fox clever'],['🌈','rainbow','rainbow color colorful'],\n];\n\nconst query = input.trim().toLowerCase();\nconst results = EMOJIS.filter(([emoji, name, tags]) =>\n  name.includes(query) || tags.includes(query) || query.split(/\\s+/).some(w => name.includes(w) || tags.includes(w))\n);\n\nif (results.length === 0) return { output: `No emojis found for \"${query}\"`, outputLanguage: 'text' };\n\nconst lines = results.map(([emoji, name]) => {\n  const cp = [...emoji].map(c => 'U+' + c.codePointAt(0).toString(16).toUpperCase().padStart(4,'0')).join(' ');\n  return `${emoji}  ${name.padEnd(35)} ${cp}`;\n});\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+  }
+}

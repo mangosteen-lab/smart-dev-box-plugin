@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "reading-time-estimator",
+    "name": "Reading Time Estimator",
+    "category": "Text",
+    "description": "Estimates slow, average, and fast reading time for any prose block.",
+    "keywords": ["reading", "time", "estimate", "words", "wpm", "prose"],
+    "tags": ["Student", "Office Worker", "Programmer"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const words = input.trim().split(/\\s+/).filter(Boolean).length;\nreturn words > 10 ? Math.min(0.9, 0.5 + words / 2000) : 0;",
+    "executeCode": "const words = input.trim().split(/\\s+/).filter(Boolean).length;\nconst chars = input.length;\nconst sentences = (input.match(/[.!?]+/g) || []).length || 1;\nconst slow = Math.ceil(words / 150);\nconst avg  = Math.ceil(words / 238);\nconst fast = Math.ceil(words / 350);\nfunction fmt(mins) {\n  if (mins < 1) return 'less than a minute';\n  return mins === 1 ? '1 minute' : mins + ' minutes';\n}\nconst lines = [\n  'Word count:    ' + words,\n  'Character count: ' + chars,\n  'Sentences:     ' + sentences,\n  '',\n  'Estimated Reading Time',\n  '  Slow  (150 wpm): ' + fmt(slow),\n  '  Avg   (238 wpm): ' + fmt(avg),\n  '  Fast  (350 wpm): ' + fmt(fast),\n];\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+  }
+}

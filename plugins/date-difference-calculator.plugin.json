@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "date-difference-calculator",
+    "name": "Date Difference Calculator",
+    "category": "Conversion",
+    "description": "Detects two dates in the input and outputs the difference in days, weeks, months, and business days.",
+    "keywords": ["date", "difference", "days", "weeks", "months", "business days", "calendar"],
+    "tags": ["Office Worker", "Student", "Programmer"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const dates = input.match(/\\b\\d{4}-\\d{2}-\\d{2}\\b/g) || [];\nreturn dates.length >= 2 ? 0.95 : 0;",
+    "executeCode": "const dates = input.match(/\\b\\d{4}-\\d{2}-\\d{2}\\b/g) || [];\nif (dates.length < 2) return { output: '', error: 'Please provide two dates in YYYY-MM-DD format.' };\nconst [d1, d2] = [new Date(dates[0]), new Date(dates[1])];\nif (isNaN(d1) || isNaN(d2)) return { output: '', error: 'Could not parse dates.' };\nconst start = d1 < d2 ? d1 : d2;\nconst end   = d1 < d2 ? d2 : d1;\nconst msPerDay = 86400000;\nconst totalDays = Math.round((end - start) / msPerDay);\nconst totalWeeks = (totalDays / 7).toFixed(2);\nconst months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());\n\n// Business days (Mon-Fri)\nlet bizDays = 0;\nconst cur = new Date(start);\nwhile (cur < end) {\n  const dow = cur.getDay();\n  if (dow !== 0 && dow !== 6) bizDays++;\n  cur.setDate(cur.getDate() + 1);\n}\n\nconst lines = [\n  `From:           ${start.toISOString().slice(0, 10)}`,\n  `To:             ${end.toISOString().slice(0, 10)}`,\n  '',\n  `Calendar days:  ${totalDays}`,\n  `Weeks:          ${totalWeeks}`,\n  `Approx months:  ${months}`,\n  `Business days:  ${bizDays} (Mon–Fri)`,\n];\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+  }
+}

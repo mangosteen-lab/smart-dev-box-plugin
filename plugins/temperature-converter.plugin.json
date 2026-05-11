@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "temperature-converter",
+    "name": "Temperature Converter",
+    "category": "Conversion",
+    "description": "Converts between Celsius, Fahrenheit, and Kelvin. Detects the unit from context.",
+    "keywords": ["temperature", "celsius", "fahrenheit", "kelvin", "convert", "weather"],
+    "tags": ["Student", "Office Worker"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const t = input.trim();\nreturn /[-\\d.]+\\s*°?\\s*[CcFfKk]\\b/.test(t) ? 0.95 : 0;",
+    "executeCode": "const t = input.trim();\nconst lines = [];\nconst re = /(-?[\\d.]+)\\s*°?\\s*([CcFfKk])\\b/g;\nlet m;\nwhile ((m = re.exec(t)) !== null) {\n  const val = parseFloat(m[1]);\n  const unit = m[2].toUpperCase();\n  let C, F, K;\n  if (unit === 'C') { C = val; F = C * 9/5 + 32; K = C + 273.15; }\n  else if (unit === 'F') { F = val; C = (F - 32) * 5/9; K = C + 273.15; }\n  else if (unit === 'K') { K = val; C = K - 273.15; F = C * 9/5 + 32; }\n  lines.push(\n    `${val}°${unit}  →  ${C.toFixed(2)}°C  |  ${F.toFixed(2)}°F  |  ${K.toFixed(2)} K`\n  );\n}\nif (lines.length === 0) return { output: '', error: 'No temperature found. Try \"100°C\" or \"32F\" or \"373.15K\".' };\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+  }
+}

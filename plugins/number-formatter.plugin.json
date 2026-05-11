@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "number-formatter",
+    "name": "Number Formatter",
+    "category": "Conversion",
+    "description": "Takes a raw number and outputs it in multiple formats: locale string, scientific notation, hex, binary, and ordinal.",
+    "keywords": ["number", "format", "hex", "binary", "scientific", "ordinal", "convert"],
+    "tags": ["Programmer", "Student"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const t = input.trim();\nreturn /^-?[\\d,_]+\\.?\\d*([eE][+-]?\\d+)?$/.test(t) ? 0.92 : 0;",
+    "executeCode": "const raw = input.trim().replace(/[,_]/g, '');\nconst n = parseFloat(raw);\nif (isNaN(n)) return { output: '', error: 'Input is not a valid number.' };\n\nfunction ordinal(n) {\n  const abs = Math.abs(Math.round(n));\n  const s = ['th','st','nd','rd'];\n  const v = abs % 100;\n  return abs + (s[(v-20)%10]||s[v]||s[0]);\n}\n\nconst isInt = Number.isInteger(n);\nconst lines = [\n  `Input:              ${raw}`,\n  `Locale string:      ${n.toLocaleString()}`,\n  `Scientific:         ${n.toExponential()}`,\n];\nif (isInt) {\n  lines.push(`Hexadecimal:        0x${Math.abs(n).toString(16).toUpperCase()}${n < 0 ? ' (negative)' : ''}`);\n  lines.push(`Binary:             ${n < 0 ? '-' : ''}0b${Math.abs(n).toString(2)}`);\n  lines.push(`Octal:              ${n < 0 ? '-' : ''}0o${Math.abs(n).toString(8)}`);\n  lines.push(`Ordinal:            ${ordinal(n)}`);\n}\nlines.push(`Absolute value:     ${Math.abs(n)}`);\nif (isInt) lines.push(`Bits needed:        ${Math.floor(Math.log2(Math.abs(n) || 1)) + 1}`);\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+  }
+}

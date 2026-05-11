@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "log-formatter",
+    "name": "Log Formatter",
+    "category": "Formatting",
+    "description": "Detects structured log lines (JSON logs, nginx, Apache) and pretty-prints them with level highlighting.",
+    "keywords": ["log", "format", "json", "nginx", "apache", "pretty", "structured"],
+    "tags": ["Programmer"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const lines = input.trim().split('\\n').filter(Boolean);\nconst jsonLogs = lines.filter(l => { try { const o = JSON.parse(l.trim()); return typeof o === 'object'; } catch { return false; } });\nconst nginxLogs = lines.filter(l => /^[\\d.]+\\s+-.+\\[.+\\]\\s+\"/.test(l)).length;\nconst ratio = (jsonLogs.length + nginxLogs) / Math.max(1, lines.length);\nreturn ratio > 0.3 ? 0.93 : ratio > 0.1 ? 0.6 : 0;",
+    "executeCode": "const LEVEL_LABELS = { 'error': '  ERROR', 'err': '  ERROR', 'fatal': '  FATAL', 'warn': '   WARN', 'warning': '   WARN', 'info': '   INFO', 'debug': '  DEBUG', 'trace': '  TRACE' };\nconst lines = input.trim().split('\\n');\nconst out = [];\nfor (const raw of lines) {\n  const line = raw.trim();\n  if (!line) { out.push(''); continue; }\n  // Try JSON log\n  try {\n    const obj = JSON.parse(line);\n    if (typeof obj === 'object' && obj !== null) {\n      const level = (obj.level || obj.severity || obj.lvl || obj.l || '').toLowerCase();\n      const msg = obj.message || obj.msg || obj.m || '';\n      const time = obj.time || obj.timestamp || obj.ts || obj.datetime || '';\n      const label = LEVEL_LABELS[level] || '   LOG ';\n      const prefix = time ? `[${time}] ${label}` : label;\n      // Extract remaining keys\n      const skip = new Set(['level','severity','lvl','l','message','msg','m','time','timestamp','ts','datetime']);\n      const extra = Object.entries(obj).filter(([k]) => !skip.has(k)).map(([k,v]) => `${k}=${JSON.stringify(v)}`).join(' ');\n      out.push(`${prefix}  ${msg}${extra ? '  ' + extra : ''}`);\n      continue;\n    }\n  } catch {}\n  // Try nginx combined log: IP - - [date] \"method path proto\" status size\n  const nginx = line.match(/^([\\d.a-fA-F:]+)\\s+\\S+\\s+\\S+\\s+\\[([^\\]]+)\\]\\s+\"(\\S+)\\s+(\\S+)\\s+(\\S+)\"\\s+(\\d+)\\s+(\\d+)/);\n  if (nginx) {\n    const [, ip, date, method, path, proto, status, size] = nginx;\n    const s = parseInt(status);\n    const lvl = s >= 500 ? '  ERROR' : s >= 400 ? '   WARN' : '   INFO';\n    out.push(`[${date}] ${lvl}  ${method} ${path} → ${status}  (${size}B)  ${ip}`);\n    continue;\n  }\n  out.push(line);\n}\nreturn { output: out.join('\\n'), outputLanguage: 'text' };"
+  }
+}

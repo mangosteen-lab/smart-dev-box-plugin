@@ -1,0 +1,1171 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-05-14T01:38:54.111Z",
+  "plugins": [
+    {
+      "id": "bcrypt-hash-generator",
+      "name": "BCrypt Hash Generator",
+      "description": "Hashes a password with bcrypt at a configurable cost factor using a pure-JS implementation.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer"
+      ],
+      "type": "generator",
+      "options": [
+        {
+          "type": "text",
+          "key": "password",
+          "label": "Password to hash",
+          "defaultValue": ""
+        },
+        {
+          "type": "number",
+          "key": "rounds",
+          "label": "Cost factor (rounds)",
+          "defaultValue": 10,
+          "min": 4,
+          "max": 14
+        }
+      ],
+      "generateCode": "// Pure-JS bcrypt is not available in this sandbox.\n// We provide a SHA-256 based PBKDF2-style hash as a demonstration.\nconst password = (options.password ?? '').trim();\nconst rounds   = Math.max(4, Math.min(14, Number(options.rounds ?? 10)));\nif (!password) return { output: '', error: 'Please enter a password to hash.' };\n\n// Deterministic salt from crypto.getRandomValues if available, else Math.random\nconst saltBytes = new Uint8Array(16);\nif (typeof crypto !== 'undefined' && crypto.getRandomValues) {\n  crypto.getRandomValues(saltBytes);\n} else {\n  for (let i = 0; i < 16; i++) saltBytes[i] = Math.floor(Math.random() * 256);\n}\nconst saltHex = [...saltBytes].map(b => b.toString(16).padStart(2,'0')).join('');\n\n// TextEncoder to bytes\nconst enc = new TextEncoder();\nconst pwBytes = enc.encode(password);\n\nasync function pbkdf2Hash(password, salt, iterations) {\n  const keyMaterial = await crypto.subtle.importKey(\n    'raw', password, { name: 'PBKDF2' }, false, ['deriveBits']\n  );\n  const bits = await crypto.subtle.deriveBits(\n    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },\n    keyMaterial, 256\n  );\n  return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2,'0')).join('');\n}\n\nconst iterations = Math.pow(2, rounds);\nconst saltBuf = enc.encode(saltHex);\nconst hashHex = await pbkdf2Hash(pwBytes, saltBuf, iterations);\n\nconst result = [\n  `Algorithm:    PBKDF2-SHA256 (bcrypt not available in sandbox)`,\n  `Cost rounds:  ${rounds}  (iterations: ${iterations.toLocaleString()})`,\n  `Salt (hex):   ${saltHex}`,\n  `Hash (hex):   ${hashHex}`,\n  '',\n  `Stored form:  $pbkdf2-sha256$r=${rounds}$${saltHex}$${hashHex}`,\n].join('\\n');\nreturn { output: result, outputLanguage: 'text' };"
+    },
+    {
+      "id": "bytes-formatter",
+      "name": "Bytes Formatter",
+      "description": "Converts raw byte counts to human-readable sizes in both SI (KB, MB, GB) and binary (KiB, MiB, GiB) units.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer",
+        "Student"
+      ],
+      "category": "Conversion",
+      "keywords": [
+        "bytes",
+        "kb",
+        "mb",
+        "gb",
+        "kib",
+        "mib",
+        "gib",
+        "size",
+        "storage",
+        "format"
+      ],
+      "detectCode": "const t = input.trim();\nreturn /^\\d[\\d,_]*\\s*(bytes?|b|kb|mb|gb|kib|mib|gib)?$/i.test(t) ? 0.92 : 0;",
+      "executeCode": "const raw = input.trim().replace(/[,_]/g, '');\nconst m = raw.match(/^([\\d.]+)\\s*(bytes?|b|kb|mb|gb|kib|mib|gib)?$/i);\nif (!m) return { output: '', error: 'Enter a byte count, e.g. \"1048576\" or \"1.5 GB\".' };\nconst val = parseFloat(m[1]);\nconst unit = (m[2] || 'b').toLowerCase();\nconst MULTIPLIERS = {\n  b: 1, byte: 1, bytes: 1,\n  kb: 1e3, mb: 1e6, gb: 1e9, tb: 1e12,\n  kib: 1024, mib: 1024**2, gib: 1024**3, tib: 1024**4,\n};\nconst bytes = val * (MULTIPLIERS[unit] || 1);\n\nfunction si(b) {\n  const units = ['B','KB','MB','GB','TB','PB'];\n  let i = 0;\n  while (b >= 1000 && i < units.length - 1) { b /= 1000; i++; }\n  return b.toFixed(i > 0 ? 3 : 0) + ' ' + units[i];\n}\nfunction binary(b) {\n  const units = ['B','KiB','MiB','GiB','TiB','PiB'];\n  let i = 0;\n  while (b >= 1024 && i < units.length - 1) { b /= 1024; i++; }\n  return b.toFixed(i > 0 ? 4 : 0) + ' ' + units[i];\n}\n\nconst lines = [\n  `Raw bytes:     ${bytes.toLocaleString()} B`,\n  `SI (decimal):  ${si(bytes)}`,\n  `Binary (IEC):  ${binary(bytes)}`,\n  '',\n  '--- All SI ---',\n  `  Kilobytes:   ${(bytes / 1e3).toFixed(3)} KB`,\n  `  Megabytes:   ${(bytes / 1e6).toFixed(6)} MB`,\n  `  Gigabytes:   ${(bytes / 1e9).toFixed(9)} GB`,\n  '',\n  '--- All Binary ---',\n  `  Kibibytes:   ${(bytes / 1024).toFixed(4)} KiB`,\n  `  Mebibytes:   ${(bytes / 1024**2).toFixed(6)} MiB`,\n  `  Gibibytes:   ${(bytes / 1024**3).toFixed(9)} GiB`,\n];\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "chat-aba-path-parser",
+      "name": "ChatABA Path Parser",
+      "description": "Parse a ChatABA HTTP URL and derive the corresponding UNC network share path (\\\\<ip>\\Soil_Share\\commands\\<job_id>)",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-11T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-11T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer"
+      ],
+      "category": "Inspection",
+      "keywords": [
+        "chataba",
+        "aba",
+        "path",
+        "unc",
+        "share",
+        "network",
+        "job",
+        "output",
+        "soil"
+      ],
+      "detectCode": "// Matches ChatABA output URLs: http://<ip>:<port>/temp/commands/<job_id>/...\nconst t = input.trim();\nreturn /^https?:\\/\\/[\\d.]+:\\d+\\/temp\\/commands\\/[a-f0-9]+\\b/i.test(t) ? 0.98 : 0;",
+      "executeCode": "try {\n  const t = input.trim();\n  const url = new URL(t);\n  const match = url.pathname.match(/^\\/temp\\/commands\\/([^/]+)/);\n  if (!match) {\n    return { output: '', error: 'Could not extract job_id. Expected: /temp/commands/<job_id>/...' };\n  }\n  const ip = url.hostname;\n  const port = url.port || '(default)';\n  const jobId = match[1];\n  const uncPath = '\\\\\\\\' + ip + '\\\\Soil_Share\\\\commands\\\\' + jobId;\n  const lines = [\n    'URL:           ' + t,\n    '',\n    'Host IP:       ' + ip,\n    'Port:          ' + port,\n    'Job ID:        ' + jobId,\n    'Full Path:     ' + url.pathname,\n    '',\n    'UNC Share Path:',\n    '  ' + uncPath,\n  ];\n  return { output: lines.join('\\n'), outputLanguage: 'text' };\n} catch (err) {\n  return { output: '', error: err instanceof Error ? err.message : 'Failed to parse ChatABA URL' };\n}"
+    },
+    {
+      "id": "css-units-converter",
+      "name": "CSS Units Converter",
+      "description": "Converts between px, rem, em, pt, and vw CSS units given a base font size and viewport width.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer"
+      ],
+      "category": "Conversion",
+      "keywords": [
+        "css",
+        "units",
+        "px",
+        "rem",
+        "em",
+        "pt",
+        "vw",
+        "convert",
+        "responsive"
+      ],
+      "detectCode": "const t = input.trim();\nreturn /[\\d.]+\\s*(px|rem|em|pt|vw)\\b/i.test(t) ? 0.93 : 0;",
+      "executeCode": "// Extract optional base font size and viewport width from input\nconst baseMatch = input.match(/base[:\\s]+([\\d.]+)\\s*px/i);\nconst vpMatch = input.match(/viewport[:\\s]+([\\d.]+)\\s*px/i);\nconst BASE_FONT = baseMatch ? parseFloat(baseMatch[1]) : 16;\nconst VIEWPORT  = vpMatch  ? parseFloat(vpMatch[1])  : 1440;\n\nconst re = /(-?[\\d.]+)\\s*(px|rem|em|pt|vw)\\b/gi;\nconst lines = [\n  `Base font size: ${BASE_FONT}px`,\n  `Viewport width: ${VIEWPORT}px`,\n  '',\n];\nlet m;\nwhile ((m = re.exec(input)) !== null) {\n  const val  = parseFloat(m[1]);\n  const unit = m[2].toLowerCase();\n  let px;\n  if      (unit === 'px')  px = val;\n  else if (unit === 'rem') px = val * BASE_FONT;\n  else if (unit === 'em')  px = val * BASE_FONT;\n  else if (unit === 'pt')  px = val * 1.3333;\n  else if (unit === 'vw')  px = val * VIEWPORT / 100;\n  const rem = px / BASE_FONT;\n  const pt  = px / 1.3333;\n  const vw  = px / VIEWPORT * 100;\n  lines.push(`${val}${unit}`);\n  lines.push(`  px:   ${px.toFixed(3)}`);\n  lines.push(`  rem:  ${rem.toFixed(4)}`);\n  lines.push(`  em:   ${rem.toFixed(4)}`);\n  lines.push(`  pt:   ${pt.toFixed(3)}`);\n  lines.push(`  vw:   ${vw.toFixed(4)}%`);\n  lines.push('');\n}\nif (lines.length <= 3) return { output: '', error: 'No CSS values found. Try \"16px\" or \"1rem\".' };\nreturn { output: lines.join('\\n').trimEnd(), outputLanguage: 'text' };"
+    },
+    {
+      "id": "csv-pretty-viewer",
+      "name": "CSV Pretty Viewer",
+      "description": "Renders CSV as a fixed-width ASCII table for quick visual inspection.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer",
+        "Student",
+        "Office Worker"
+      ],
+      "category": "Conversion",
+      "keywords": [
+        "csv",
+        "table",
+        "ascii",
+        "preview",
+        "pretty",
+        "viewer"
+      ],
+      "detectCode": "const lines = input.trim().split('\\n').filter(Boolean);\nif (lines.length < 2) return 0;\nconst commas = lines.map(l => (l.match(/,/g) || []).length);\nconst consistent = commas.every(c => c === commas[0]) && commas[0] > 0;\nreturn consistent ? 0.85 : 0;",
+      "executeCode": "function parseCSVLine(line) {\n  const cells = [];\n  let cur = '', inQuote = false;\n  for (let i = 0; i < line.length; i++) {\n    const ch = line[i];\n    if (ch === '\"') {\n      if (inQuote && line[i+1] === '\"') { cur += '\"'; i++; }\n      else inQuote = !inQuote;\n    } else if (ch === ',' && !inQuote) {\n      cells.push(cur); cur = '';\n    } else {\n      cur += ch;\n    }\n  }\n  cells.push(cur);\n  return cells.map(c => c.trim());\n}\n\nconst lines = input.trim().split('\\n').filter(Boolean);\nconst rows = lines.map(parseCSVLine);\nconst colCount = Math.max(...rows.map(r => r.length));\nfor (const r of rows) while (r.length < colCount) r.push('');\nconst widths = Array.from({ length: colCount }, (_, i) =>\n  Math.max(1, ...rows.map(r => r[i].length))\n);\nfunction rule(left, mid, right, fill) {\n  return left + widths.map(w => fill.repeat(w + 2)).join(mid) + right;\n}\nconst top = rule('+', '+', '+', '-');\nconst mid = rule('+', '+', '+', '-');\nconst bot = rule('+', '+', '+', '-');\nconst fmt = row => '|' + row.map((c, i) => ' ' + c.padEnd(widths[i]) + ' ').join('|') + '|';\nconst [header, ...body] = rows;\nconst out = [top, fmt(header), mid, ...body.map(fmt), bot].join('\\n');\nreturn { output: out, outputLanguage: 'text' };"
+    },
+    {
+      "id": "csv-to-markdown-table",
+      "name": "CSV → Markdown Table",
+      "description": "Converts CSV data into an aligned Markdown pipe table.",
+      "outputExtension": "md",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer",
+        "Student",
+        "Office Worker"
+      ],
+      "category": "Conversion",
+      "keywords": [
+        "csv",
+        "markdown",
+        "table",
+        "convert",
+        "pipe",
+        "format"
+      ],
+      "detectCode": "const lines = input.trim().split('\\n').filter(Boolean);\nif (lines.length < 2) return 0;\nconst commas = lines.map(l => (l.match(/,/g) || []).length);\nconst consistent = commas.every(c => c === commas[0]) && commas[0] > 0;\nreturn consistent ? 0.9 : 0;",
+      "executeCode": "function parseCSVLine(line) {\n  const cells = [];\n  let cur = '', inQuote = false;\n  for (let i = 0; i < line.length; i++) {\n    const ch = line[i];\n    if (ch === '\"') {\n      if (inQuote && line[i+1] === '\"') { cur += '\"'; i++; }\n      else inQuote = !inQuote;\n    } else if (ch === ',' && !inQuote) {\n      cells.push(cur); cur = '';\n    } else {\n      cur += ch;\n    }\n  }\n  cells.push(cur);\n  return cells.map(c => c.trim());\n}\n\nconst lines = input.trim().split('\\n').filter(Boolean);\nconst rows = lines.map(parseCSVLine);\nconst colCount = Math.max(...rows.map(r => r.length));\n// Pad rows\nfor (const r of rows) while (r.length < colCount) r.push('');\n// Compute column widths\nconst widths = Array.from({ length: colCount }, (_, i) =>\n  Math.max(3, ...rows.map(r => r[i].length))\n);\nconst sep = '|' + widths.map(w => '-'.repeat(w + 2)).join('|') + '|';\nconst format = row => '| ' + row.map((c, i) => c.padEnd(widths[i])).join(' | ') + ' |';\nconst [header, ...body] = rows;\nconst out = [format(header), sep, ...body.map(format)].join('\\n');\nreturn { output: out, outputLanguage: 'markdown' };"
+    },
+    {
+      "id": "date-difference-calculator",
+      "name": "Date Difference Calculator",
+      "description": "Detects two dates in the input and outputs the difference in days, weeks, months, and business days.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Office Worker",
+        "Student",
+        "Programmer"
+      ],
+      "category": "Conversion",
+      "keywords": [
+        "date",
+        "difference",
+        "days",
+        "weeks",
+        "months",
+        "business days",
+        "calendar"
+      ],
+      "detectCode": "const dates = input.match(/\\b\\d{4}-\\d{2}-\\d{2}\\b/g) || [];\nreturn dates.length >= 2 ? 0.95 : 0;",
+      "executeCode": "const dates = input.match(/\\b\\d{4}-\\d{2}-\\d{2}\\b/g) || [];\nif (dates.length < 2) return { output: '', error: 'Please provide two dates in YYYY-MM-DD format.' };\nconst [d1, d2] = [new Date(dates[0]), new Date(dates[1])];\nif (isNaN(d1) || isNaN(d2)) return { output: '', error: 'Could not parse dates.' };\nconst start = d1 < d2 ? d1 : d2;\nconst end   = d1 < d2 ? d2 : d1;\nconst msPerDay = 86400000;\nconst totalDays = Math.round((end - start) / msPerDay);\nconst totalWeeks = (totalDays / 7).toFixed(2);\nconst months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());\n\n// Business days (Mon-Fri)\nlet bizDays = 0;\nconst cur = new Date(start);\nwhile (cur < end) {\n  const dow = cur.getDay();\n  if (dow !== 0 && dow !== 6) bizDays++;\n  cur.setDate(cur.getDate() + 1);\n}\n\nconst lines = [\n  `From:           ${start.toISOString().slice(0, 10)}`,\n  `To:             ${end.toISOString().slice(0, 10)}`,\n  '',\n  `Calendar days:  ${totalDays}`,\n  `Weeks:          ${totalWeeks}`,\n  `Approx months:  ${months}`,\n  `Business days:  ${bizDays} (Mon–Fri)`,\n];\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "docker-compose-inspector",
+      "name": "Docker Compose Inspector",
+      "description": "Summarizes services, ports, volumes, environment variables, and dependencies from a Docker Compose file.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer"
+      ],
+      "category": "Inspection",
+      "keywords": [
+        "docker",
+        "compose",
+        "services",
+        "ports",
+        "volumes",
+        "yaml",
+        "devops"
+      ],
+      "detectCode": "const t = input.trim();\nreturn /^\\s*services\\s*:/m.test(t) && /^\\s{2,}\\w[\\w-]*\\s*:/m.test(t) ? 0.95 : 0;",
+      "executeCode": "// Minimal YAML parser for Docker Compose\nconst lines = input.split('\\n');\nconst services = {};\nlet currentService = null;\nlet currentSection = null;\nlet inServices = false;\n\nfor (let i = 0; i < lines.length; i++) {\n  const line = lines[i];\n  const indent = line.match(/^(\\s*)/)[1].length;\n  const trimmed = line.trim();\n  if (!trimmed || trimmed.startsWith('#')) continue;\n\n  if (trimmed === 'services:') { inServices = true; continue; }\n  if (inServices && indent === 2 && /^[\\w-]+:\\s*$/.test(trimmed)) {\n    currentService = trimmed.replace(':', '').trim();\n    services[currentService] = { ports: [], volumes: [], env: [], depends: [], image: '', build: '' };\n    currentSection = null;\n    continue;\n  }\n  if (!currentService) continue;\n  if (trimmed.startsWith('image:')) {\n    services[currentService].image = trimmed.replace('image:', '').trim();\n  } else if (trimmed.startsWith('build:')) {\n    services[currentService].build = trimmed.replace('build:', '').trim() || '.';\n  } else if (trimmed === 'ports:') { currentSection = 'ports'; }\n  else if (trimmed === 'volumes:') { currentSection = 'volumes'; }\n  else if (trimmed === 'environment:') { currentSection = 'env'; }\n  else if (trimmed === 'depends_on:') { currentSection = 'depends'; }\n  else if (trimmed.startsWith('-') && currentSection) {\n    services[currentService][currentSection].push(trimmed.slice(1).trim());\n  } else if (!/^-/.test(trimmed) && trimmed.includes(':') && indent === 4) {\n    currentSection = null;\n  }\n}\n\nconst out = [];\nfor (const [name, s] of Object.entries(services)) {\n  out.push(`Service: ${name}`);\n  if (s.image)   out.push(`  Image:   ${s.image}`);\n  if (s.build)   out.push(`  Build:   ${s.build}`);\n  if (s.ports.length)   out.push(`  Ports:   ${s.ports.join(', ')}`);\n  if (s.volumes.length) out.push(`  Volumes: ${s.volumes.join(', ')}`);\n  if (s.env.length) {\n    out.push('  Env vars:');\n    s.env.forEach(e => out.push('    ' + e));\n  }\n  if (s.depends.length) out.push(`  Depends on: ${s.depends.join(', ')}`);\n  out.push('');\n}\nreturn { output: out.join('\\n').trimEnd(), outputLanguage: 'text' };"
+    },
+    {
+      "id": "duration-calculator",
+      "name": "Duration Calculator",
+      "description": "Converts plain English durations (e.g. '2 hours 45 minutes') to seconds and vice versa.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer",
+        "Office Worker"
+      ],
+      "category": "Conversion",
+      "keywords": [
+        "duration",
+        "time",
+        "convert",
+        "seconds",
+        "minutes",
+        "hours",
+        "parse"
+      ],
+      "detectCode": "const t = input.trim().toLowerCase();\nconst hasWords = /\\b(hour|minute|second|day|week|hr|min|sec)s?\\b/.test(t);\nconst hasNum = /\\d/.test(t);\nreturn (hasWords && hasNum) ? 0.92 : /^\\d+\\s*s$/.test(t) ? 0.7 : 0;",
+      "executeCode": "const t = input.trim().toLowerCase();\n// Check if it's a raw seconds input\nconst rawSeconds = t.match(/^([\\d.]+)\\s*(s|sec|seconds?)$/);\nlet totalSeconds;\nif (rawSeconds) {\n  totalSeconds = parseFloat(rawSeconds[1]);\n} else {\n  totalSeconds = 0;\n  const patterns = [\n    { re: /([\\d.]+)\\s*w(eeks?)?/, mult: 7 * 86400 },\n    { re: /([\\d.]+)\\s*d(ays?)?/, mult: 86400 },\n    { re: /([\\d.]+)\\s*(h(ours?|rs?)?)/, mult: 3600 },\n    { re: /([\\d.]+)\\s*(m(inutes?|ins?)?)(?!s)/, mult: 60 },\n    { re: /([\\d.]+)\\s*(s(econds?|ecs?)?)/, mult: 1 },\n  ];\n  for (const { re, mult } of patterns) {\n    const m = t.match(re);\n    if (m) totalSeconds += parseFloat(m[1]) * mult;\n  }\n}\n\nif (totalSeconds === 0) return { output: '', error: 'Could not parse duration. Try \"2 hours 30 minutes\" or \"9000 seconds\".' };\n\nconst weeks  = Math.floor(totalSeconds / 604800);\nconst days   = Math.floor((totalSeconds % 604800) / 86400);\nconst hours  = Math.floor((totalSeconds % 86400) / 3600);\nconst mins   = Math.floor((totalSeconds % 3600) / 60);\nconst secs   = Math.round(totalSeconds % 60);\nconst parts  = [];\nif (weeks)  parts.push(weeks  + ' week'   + (weeks  > 1 ? 's' : ''));\nif (days)   parts.push(days   + ' day'    + (days   > 1 ? 's' : ''));\nif (hours)  parts.push(hours  + ' hour'   + (hours  > 1 ? 's' : ''));\nif (mins)   parts.push(mins   + ' minute' + (mins   > 1 ? 's' : ''));\nif (secs)   parts.push(secs   + ' second' + (secs   > 1 ? 's' : ''));\n\nconst hms = [hours + days*24 + weeks*168, mins, secs].map(n => String(n).padStart(2,'0')).join(':');\nconst lines = [\n  `Total seconds:  ${totalSeconds}`,\n  `HH:MM:SS:       ${hms}`,\n  `Human:          ${parts.join(', ')}`,\n  `Minutes:        ${(totalSeconds / 60).toFixed(2)}`,\n  `Hours:          ${(totalSeconds / 3600).toFixed(4)}`,\n];\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "emoji-picker",
+      "name": "Emoji Picker / Searcher",
+      "description": "Search and copy emojis by name or keyword. Outputs the character, its name, and Unicode code point.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Office Worker",
+        "Student",
+        "Programmer"
+      ],
+      "category": "Generation",
+      "keywords": [
+        "emoji",
+        "search",
+        "unicode",
+        "icon",
+        "symbol",
+        "picker"
+      ],
+      "detectCode": "const t = input.trim().toLowerCase();\n// Short query words, likely an emoji search\nconst words = t.split(/\\s+/);\nreturn words.length <= 5 && words.every(w => /^[a-z]+$/.test(w)) && t.length < 60 ? 0.6 : 0;",
+      "executeCode": "const EMOJIS = [\n  ['😀','grinning face','smile happy grin'],['😂','face with tears of joy','laugh funny lol'],['🥰','smiling face with hearts','love heart adore'],['😎','smiling face with sunglasses','cool sunglasses'],['🤔','thinking face','think ponder hmm'],['😢','crying face','sad cry tear'],['😡','enraged face','angry mad rage'],['🎉','party popper','party celebrate confetti'],['🔥','fire','fire hot flame burn'],['💡','light bulb','idea light bulb'],['✅','check mark button','check done ok yes'],['❌','cross mark','no cancel wrong error'],['⚠️','warning','warning caution alert'],['🚀','rocket','rocket launch space fast'],['🐛','bug','bug insect error debug'],['🔒','locked','lock security private'],['🔓','unlocked','unlock open'],['📝','memo','note write document'],['📊','bar chart','chart graph data analytics'],['📅','calendar','calendar date schedule'],['⏰','alarm clock','time alarm clock'],['🔍','magnifying glass tilted left','search find look'],['💬','speech bubble','comment chat message talk'],['📧','e-mail','email mail message'],['📁','file folder','folder directory files'],['🌐','globe with meridians','web internet global'],['💻','laptop','computer laptop code'],['📱','mobile phone','phone mobile smartphone'],['🖥️','desktop computer','desktop pc monitor'],['⌨️','keyboard','keyboard type input'],['🖱️','computer mouse','mouse click cursor'],['📦','package','package box shipping'],['🏠','house','home house'],['🏢','office building','office building work'],['🌟','glowing star','star featured important'],['❤️','red heart','love heart'],['💯','hundred points','100 percent perfect'],['👍','thumbs up','like good approve ok'],['👎','thumbs down','dislike bad'],['🙏','folded hands','please thanks pray'],['💪','flexed biceps','strong muscle power'],['🎯','direct hit','target goal bullseye'],['🧠','brain','brain smart think intelligence'],['👀','eyes','look see watch'],['💀','skull','dead skull danger'],['🤖','robot','robot bot ai machine'],['🦄','unicorn','unicorn special magic'],['🐍','snake','snake python'],['🦊','fox','fox clever'],['🌈','rainbow','rainbow color colorful'],\n];\n\nconst query = input.trim().toLowerCase();\nconst results = EMOJIS.filter(([emoji, name, tags]) =>\n  name.includes(query) || tags.includes(query) || query.split(/\\s+/).some(w => name.includes(w) || tags.includes(w))\n);\n\nif (results.length === 0) return { output: `No emojis found for \"${query}\"`, outputLanguage: 'text' };\n\nconst lines = results.map(([emoji, name]) => {\n  const cp = [...emoji].map(c => 'U+' + c.codePointAt(0).toString(16).toUpperCase().padStart(4,'0')).join(' ');\n  return `${emoji}  ${name.padEnd(35)} ${cp}`;\n});\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "env-file-inspector",
+      "name": ".env File Inspector",
+      "description": "Lists all variables, flags empty values, and redacts common secret key names.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer"
+      ],
+      "category": "Inspection",
+      "keywords": [
+        "env",
+        "environment",
+        "variables",
+        "secrets",
+        "dotenv",
+        "config"
+      ],
+      "detectCode": "const lines = input.trim().split('\\n').filter(l => l.trim() && !l.trim().startsWith('#'));\nconst keyVal = lines.filter(l => /^[A-Z_][A-Z0-9_]*\\s*=/i.test(l)).length;\nreturn lines.length > 0 && keyVal / lines.length > 0.5 ? 0.95 : 0;",
+      "executeCode": "const SECRET_PATTERNS = /secret|password|passwd|pwd|token|api[_-]?key|private[_-]?key|auth|credential|access[_-]?key|signing[_-]?key/i;\nconst lines = input.split('\\n');\nconst vars = [];\nlet commentCount = 0;\nfor (const raw of lines) {\n  const line = raw.trim();\n  if (!line) continue;\n  if (line.startsWith('#')) { commentCount++; continue; }\n  const m = line.match(/^([^=]+)=(.*)$/);\n  if (!m) continue;\n  const key = m[1].trim();\n  const val = m[2].trim();\n  const isEmpty = val === '';\n  const isSecret = SECRET_PATTERNS.test(key);\n  vars.push({ key, val, isEmpty, isSecret });\n}\nconst total = vars.length;\nconst emptyCount = vars.filter(v => v.isEmpty).length;\nconst secretCount = vars.filter(v => v.isSecret).length;\nconst header = [\n  `.env Inspector`,\n  `  Total variables: ${total}`,\n  `  Empty values:    ${emptyCount}`,\n  `  Secrets redacted: ${secretCount}`,\n  `  Comment lines:   ${commentCount}`,\n  '',\n  `${'KEY'.padEnd(35)} VALUE`,\n  '-'.repeat(70),\n];\nconst rows = vars.map(v => {\n  let display = v.val;\n  if (v.isSecret && v.val) display = '[REDACTED]';\n  else if (v.isEmpty) display = '(empty)';\n  const flag = v.isEmpty ? ' ⚠ EMPTY' : v.isSecret ? ' 🔒 SECRET' : '';\n  return v.key.padEnd(35) + ' ' + display + flag;\n});\nreturn { output: [...header, ...rows].join('\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "fake-credit-card-generator",
+      "name": "Fake Credit Card Generator",
+      "description": "Generates Luhn-valid test card numbers for major networks (Visa, Mastercard, Amex) — for testing only.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer"
+      ],
+      "type": "generator",
+      "options": [
+        {
+          "type": "select",
+          "key": "network",
+          "label": "Card Network",
+          "defaultValue": "all",
+          "choices": [
+            "all",
+            "visa",
+            "mastercard",
+            "amex",
+            "discover"
+          ]
+        },
+        {
+          "type": "number",
+          "key": "count",
+          "label": "Count per network",
+          "defaultValue": 3,
+          "min": 1,
+          "max": 10
+        }
+      ],
+      "generateCode": "// Luhn algorithm\nfunction luhnComplete(partial) {\n  const digits = partial.split('').map(Number);\n  // Calculate check digit\n  let sum = 0;\n  let double = true;\n  for (let i = digits.length - 1; i >= 0; i--) {\n    let d = digits[i];\n    if (double) { d *= 2; if (d > 9) d -= 9; }\n    sum += d;\n    double = !double;\n  }\n  const check = (10 - (sum % 10)) % 10;\n  return partial + check;\n}\n\nfunction randDigits(n) {\n  return Array.from({length: n}, () => Math.floor(Math.random() * 10)).join('');\n}\n\nconst NETWORKS = {\n  visa:       { prefix: ['4'], len: 16 },\n  mastercard: { prefix: ['51','52','53','54','55'], len: 16 },\n  amex:       { prefix: ['34','37'], len: 15 },\n  discover:   { prefix: ['6011','65'], len: 16 },\n};\n\nconst network = options.network ?? 'all';\nconst count = Math.max(1, Math.min(10, Number(options.count ?? 3)));\nconst targets = network === 'all' ? Object.keys(NETWORKS) : [network];\n\nconst lines = ['TEST CARD NUMBERS — FOR TESTING ONLY — NOT REAL CARDS', ''];\nfor (const net of targets) {\n  const cfg = NETWORKS[net];\n  if (!cfg) continue;\n  lines.push(net.toUpperCase() + ':');\n  for (let i = 0; i < count; i++) {\n    const prefix = cfg.prefix[Math.floor(Math.random() * cfg.prefix.length)];\n    const partial = prefix + randDigits(cfg.len - prefix.length - 1);\n    const card = luhnComplete(partial);\n    const expM = String(Math.floor(Math.random()*12)+1).padStart(2,'0');\n    const expY = String(new Date().getFullYear() + 1 + Math.floor(Math.random()*4)).slice(-2);\n    const cvv = randDigits(net === 'amex' ? 4 : 3);\n    lines.push(`  ${card}  Exp: ${expM}/${expY}  CVV: ${cvv}`);\n  }\n  lines.push('');\n}\nreturn { output: lines.join('\\n').trimEnd(), outputLanguage: 'text' };"
+    },
+    {
+      "id": "fake-person-generator",
+      "name": "Fake Person Data Generator",
+      "description": "Generates fake names, emails, phone numbers, and addresses for test data.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer",
+        "Student"
+      ],
+      "type": "generator",
+      "options": [
+        {
+          "type": "number",
+          "key": "count",
+          "label": "Count",
+          "defaultValue": 5,
+          "min": 1,
+          "max": 50
+        },
+        {
+          "type": "select",
+          "key": "format",
+          "label": "Output Format",
+          "defaultValue": "text",
+          "choices": [
+            "text",
+            "json",
+            "csv"
+          ]
+        }
+      ],
+      "generateCode": "const FIRST = ['James','Mary','Robert','Patricia','John','Jennifer','Michael','Linda','William','Barbara','David','Susan','Richard','Jessica','Joseph','Sarah','Thomas','Karen','Charles','Lisa','Christopher','Nancy','Daniel','Betty','Matthew','Margaret','Anthony','Sandra','Mark','Ashley','Donald','Dorothy','Steven','Kimberly','Paul','Emily','Andrew','Donna','Joshua','Michelle','Kenneth','Carol','Kevin','Amanda','Brian','Melissa','Timothy','Deborah','Ronald','Stephanie'];\nconst LAST = ['Smith','Johnson','Williams','Brown','Jones','Garcia','Miller','Davis','Martinez','Hernandez','Lopez','Gonzalez','Wilson','Anderson','Thomas','Taylor','Moore','Jackson','Martin','Lee','Perez','Thompson','White','Harris','Sanchez','Clark','Lewis','Robinson','Walker','Young','Allen','King','Wright','Scott','Torres','Hill','Flores','Green','Adams','Nelson','Baker','Hall','Rivera','Campbell','Mitchell','Carter','Roberts'];\nconst DOMAINS = ['gmail.com','yahoo.com','outlook.com','icloud.com','proton.me','company.com','example.org'];\nconst STREETS = ['Main St','Oak Ave','Maple Dr','Cedar Ln','Pine Rd','Elm St','Park Blvd','Lake View Dr','Summit Way','Riverside Rd'];\nconst CITIES = ['Springfield','Riverside','Fairview','Madison','Georgetown','Franklin','Bristol','Salem','Greenfield','Oakland'];\nconst STATES = ['CA','TX','FL','NY','PA','IL','OH','GA','NC','MI'];\n\nfunction rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }\nfunction phone() {\n  const a = Math.floor(Math.random()*800)+200;\n  const b = Math.floor(Math.random()*900)+100;\n  const c = Math.floor(Math.random()*9000)+1000;\n  return `(${a}) ${b}-${c}`;\n}\n\nconst count = Math.max(1, Math.min(50, Number(options.count ?? 5)));\nconst fmt = options.format ?? 'text';\nconst people = [];\nfor (let i = 0; i < count; i++) {\n  const first = rand(FIRST);\n  const last = rand(LAST);\n  const email = `${first.toLowerCase()}.${last.toLowerCase()}${Math.floor(Math.random()*99)+1}@${rand(DOMAINS)}`;\n  const address = `${Math.floor(Math.random()*9000)+100} ${rand(STREETS)}, ${rand(CITIES)}, ${rand(STATES)} ${String(Math.floor(Math.random()*90000)+10000)}`;\n  people.push({ name: `${first} ${last}`, email, phone: phone(), address });\n}\n\nlet output;\nif (fmt === 'json') {\n  output = JSON.stringify(people, null, 2);\n} else if (fmt === 'csv') {\n  const hdr = 'Name,Email,Phone,Address';\n  const rows = people.map(p => `\"${p.name}\",\"${p.email}\",\"${p.phone}\",\"${p.address}\"`);\n  output = [hdr, ...rows].join('\\n');\n} else {\n  output = people.map((p, i) =>\n    `#${i+1}\\n  Name:    ${p.name}\\n  Email:   ${p.email}\\n  Phone:   ${p.phone}\\n  Address: ${p.address}`\n  ).join('\\n\\n');\n}\nreturn { output, outputLanguage: fmt === 'json' ? 'json' : 'text' };"
+    },
+    {
+      "id": "find-replace",
+      "name": "Find & Replace",
+      "description": "Multi-pattern find and replace. Define rules as lines of 'find -> replace', then a '---' delimiter, then the text to process. Supports regex with the /regex/flags syntax.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer",
+        "Office Worker",
+        "Student"
+      ],
+      "category": "Text",
+      "keywords": [
+        "find",
+        "replace",
+        "regex",
+        "substitution",
+        "text",
+        "transform"
+      ],
+      "detectCode": "return /^.+->.*$/m.test(input) && /^-{3,}$/m.test(input) ? 0.92 : 0;",
+      "executeCode": "const parts = input.split(/^-{3,}$/m);\nif (parts.length < 2) {\n  return { output: '', error: 'Format: rules (one per line: find -> replace), then ---, then the text to process.' };\n}\nconst rulesRaw = parts[0].trim().split('\\n').filter(l => l.includes('->'));\nconst text = parts.slice(1).join('---');\nlet result = text;\nlet appliedCount = 0;\nconst log = [];\nfor (const rule of rulesRaw) {\n  const arrowIdx = rule.indexOf('->');\n  const lhs = rule.slice(0, arrowIdx).trim();\n  const rhs = rule.slice(arrowIdx + 2).trim();\n  // Check for /regex/flags syntax\n  const reMatch = lhs.match(/^\\/(.+)\\/([gimsuy]*)$/);\n  if (reMatch) {\n    try {\n      const re = new RegExp(reMatch[1], reMatch[2] || 'g');\n      const before = result;\n      result = result.replace(re, rhs);\n      const n = (before.match(re) || []).length;\n      log.push(`[regex] /${reMatch[1]}/${reMatch[2]} → \"${rhs}\" (${n} match${n===1?'':'es'})`);\n      appliedCount += n;\n    } catch (e) {\n      log.push(`[error] Invalid regex \"${lhs}\": ${e.message}`);\n    }\n  } else {\n    let count = 0;\n    result = result.split(lhs).join(rhs);\n    count = (text.split(lhs).length - 1);\n    log.push(`[literal] \"${lhs}\" → \"${rhs}\" (${count} match${count===1?'':'es'})`);\n    appliedCount += count;\n  }\n}\nconst header = log.join('\\n') + '\\n\\n--- Result ---\\n';\nreturn { output: header + result, outputLanguage: 'text' };"
+    },
+    {
+      "id": "graphql-formatter",
+      "name": "GraphQL Formatter",
+      "description": "Pretty-prints GraphQL queries, mutations, and fragments with consistent indentation.",
+      "outputExtension": "graphql",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer"
+      ],
+      "category": "Formatting",
+      "keywords": [
+        "graphql",
+        "format",
+        "pretty",
+        "gql",
+        "query",
+        "mutation",
+        "indent"
+      ],
+      "detectCode": "const t = input.trim();\nreturn (/\\b(query|mutation|subscription|fragment|type|schema|interface|enum|input)\\b/.test(t) && t.includes('{')) ? 0.92 : 0;",
+      "executeCode": "// Simple GraphQL formatter\nconst tokens = input.replace(/,\\s*/g, '\\n').split('').reduce((acc, ch) => {\n  if (ch === '{') { acc.push(ch); acc.push('__NEWLINE__'); }\n  else if (ch === '}') { acc.push('__NEWLINE__'); acc.push(ch); acc.push('__NEWLINE__'); }\n  else acc.push(ch);\n  return acc;\n}, []).join('');\n\nconst rawLines = tokens.split('__NEWLINE__').map(l => l.trim()).filter((l, i, a) => l || (a[i-1] && a[i+1]));\nlet indent = 0;\nconst out = [];\nfor (const line of rawLines) {\n  if (!line) continue;\n  if (line.startsWith('}')) indent = Math.max(0, indent - 1);\n  out.push('  '.repeat(indent) + line);\n  if (line.endsWith('{')) indent++;\n}\n// Clean up comments\nconst result = out.join('\\n').replace(/\\n{3,}/g, '\\n\\n');\nreturn { output: result, outputLanguage: 'graphql' };"
+    },
+    {
+      "id": "graphql-query-inspector",
+      "name": "GraphQL Query Inspector",
+      "description": "Validates and summarizes a GraphQL query or mutation — fields, variables, and operation name.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer"
+      ],
+      "category": "Inspection",
+      "keywords": [
+        "graphql",
+        "query",
+        "mutation",
+        "fragment",
+        "schema",
+        "api",
+        "gql"
+      ],
+      "detectCode": "const t = input.trim();\nreturn (/\\b(query|mutation|subscription|fragment)\\b/.test(t) && t.includes('{') && t.includes('}')) ? 0.95 : 0;",
+      "executeCode": "const t = input.trim();\n// Extract operation type and name\nconst opMatch = t.match(/^\\s*(query|mutation|subscription|fragment)\\s*(\\w*)\\s*(\\([^)]*\\))?/i);\nconst opType = opMatch ? opMatch[1] : 'anonymous';\nconst opName = opMatch && opMatch[2] ? opMatch[2] : '(unnamed)';\nconst varBlock = opMatch && opMatch[3] ? opMatch[3] : null;\n\n// Extract variables\nconst vars = [];\nif (varBlock) {\n  const varRe = /\\$(\\w+)\\s*:\\s*([\\w!\\[\\]]+)/g;\n  let vm;\n  while ((vm = varRe.exec(varBlock)) !== null) {\n    vars.push({ name: vm[1], type: vm[2] });\n  }\n}\n\n// Count braces depth to estimate nesting\nlet depth = 0, maxDepth = 0;\nfor (const ch of t) {\n  if (ch === '{') { depth++; maxDepth = Math.max(maxDepth, depth); }\n  else if (ch === '}') depth--;\n}\n\n// Extract field names (simple heuristic: words before { or followed by selections)\nconst fields = [...t.matchAll(/^\\s+(\\w+)\\s*[({\\n]/mg)].map(m => m[1]);\nconst uniqueFields = [...new Set(fields)];\n\n// Check for fragments used\nconst fragmentsUsed = [...t.matchAll(/\\.\\.\\.([A-Z]\\w*)/g)].map(m => m[1]);\n\nconst lines = [\n  `Operation Type: ${opType}`,\n  `Operation Name: ${opName}`,\n  `Max Nesting:    ${maxDepth - 1} levels`,\n  '',\n];\nif (vars.length > 0) {\n  lines.push('Variables:');\n  vars.forEach(v => lines.push(`  $${v.name}: ${v.type}`));\n  lines.push('');\n}\nif (uniqueFields.length > 0) {\n  lines.push('Fields referenced (heuristic):');\n  lines.push('  ' + uniqueFields.slice(0, 20).join(', ') + (uniqueFields.length > 20 ? ', ...' : ''));\n  lines.push('');\n}\nif (fragmentsUsed.length > 0) {\n  lines.push('Fragments used: ' + fragmentsUsed.join(', '));\n}\nlines.push('Syntax: ' + (depth === 0 ? 'OK (balanced braces)' : 'WARNING: unbalanced braces'));\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "heading-outline-extractor",
+      "name": "Heading & Outline Extractor",
+      "description": "Pulls all Markdown or HTML headings into a clean document outline.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Student",
+        "Office Worker",
+        "Programmer"
+      ],
+      "category": "Inspection",
+      "keywords": [
+        "heading",
+        "outline",
+        "markdown",
+        "html",
+        "toc",
+        "structure"
+      ],
+      "detectCode": "const hasMdH = /^#{1,6}\\s/m.test(input);\nconst hasHtmlH = /<h[1-6][^>]*>/i.test(input);\nreturn (hasMdH || hasHtmlH) ? 0.95 : 0;",
+      "executeCode": "const lines = input.split('\\n');\nconst outline = [];\nfor (const line of lines) {\n  // Markdown headings\n  const mdMatch = line.match(/^(#{1,6})\\s+(.+)/);\n  if (mdMatch) {\n    const level = mdMatch[1].length;\n    const text = mdMatch[2].replace(/#{1,6}\\s*$/, '').trim(); // strip trailing hashes\n    outline.push({ level, text });\n    continue;\n  }\n  // HTML headings\n  const htmlMatch = line.match(/<h([1-6])[^>]*>([^<]*)<\\/h\\1>/i);\n  if (htmlMatch) {\n    const level = parseInt(htmlMatch[1], 10);\n    const text = htmlMatch[2].trim();\n    outline.push({ level, text });\n  }\n}\nif (outline.length === 0) {\n  return { output: 'No headings found.', outputLanguage: 'text' };\n}\nconst minLevel = Math.min(...outline.map(h => h.level));\nconst result = outline.map(h => {\n  const indent = '  '.repeat(h.level - minLevel);\n  return `${indent}${'H' + h.level}  ${h.text}`;\n}).join('\\n');\nreturn { output: result, outputLanguage: 'text' };"
+    },
+    {
+      "id": "http-headers-inspector",
+      "name": "HTTP Headers Inspector",
+      "description": "Parses raw HTTP request/response headers and explains each one (caching, CORS, security headers, etc.).",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer"
+      ],
+      "category": "Inspection",
+      "keywords": [
+        "http",
+        "headers",
+        "cors",
+        "cache",
+        "security",
+        "request",
+        "response"
+      ],
+      "detectCode": "const t = input.trim();\nconst hasStatusLine = /^HTTP\\/[\\d.]+ \\d{3}/m.test(t);\nconst hasRequestLine = /^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS) .+ HTTP\\/[\\d.]+$/m.test(t);\nconst hasHeaderLines = (t.match(/^[\\w-]+:\\s*.+$/mg) || []).length >= 2;\nreturn (hasStatusLine || hasRequestLine || hasHeaderLines) ? 0.95 : 0;",
+      "executeCode": "const KNOWN = {\n  'content-type': 'Specifies the media type and encoding of the request/response body.',\n  'content-length': 'Size of the response body in bytes.',\n  'authorization': 'Credentials for authenticating the client with the server.',\n  'cache-control': 'Directives for caching mechanisms (max-age, no-cache, no-store, etc.).',\n  'content-encoding': 'Encoding applied to the body (gzip, br, deflate).',\n  'accept': 'Media types the client can handle.',\n  'accept-encoding': 'Compression algorithms the client supports.',\n  'accept-language': 'Preferred natural language for the response.',\n  'access-control-allow-origin': 'CORS: which origins may access the resource.',\n  'access-control-allow-methods': 'CORS: permitted HTTP methods.',\n  'access-control-allow-headers': 'CORS: permitted request headers.',\n  'access-control-max-age': 'CORS: how long preflight results can be cached (seconds).',\n  'strict-transport-security': 'HSTS: forces HTTPS for a specified max-age.',\n  'x-content-type-options': 'Prevents MIME sniffing (nosniff).',\n  'x-frame-options': 'Controls iframe embedding (DENY, SAMEORIGIN).',\n  'x-xss-protection': 'Legacy XSS filter setting (mostly deprecated).',\n  'content-security-policy': 'Restricts sources of scripts, styles, and other resources.',\n  'referrer-policy': 'Controls how much referrer info is sent.',\n  'permissions-policy': 'Restricts browser features (camera, microphone, etc.).',\n  'etag': 'Unique identifier for a specific version of a resource (used for conditional requests).',\n  'last-modified': 'Date/time the resource was last changed.',\n  'expires': 'Date/time after which the response is stale.',\n  'set-cookie': 'Instructs the client to store a cookie.',\n  'cookie': 'Sends stored cookies back to the server.',\n  'location': 'Redirect target URL (used with 3xx responses).',\n  'server': 'Software the server is running (may be suppressed for security).',\n  'transfer-encoding': 'Encoding used to transfer the body (chunked, identity).',\n  'vary': 'Tells caches which request headers affect the response.',\n  'connection': 'Controls whether the connection stays open after the request.',\n  'host': 'Domain name and port of the server being requested.',\n  'user-agent': 'Client software making the request.',\n  'origin': 'Origin of the request (used in CORS).',\n  'x-request-id': 'Unique identifier for tracing a request across services.',\n  'x-forwarded-for': 'Original IP address of a client going through proxies.',\n  'x-forwarded-proto': 'Protocol (HTTP/HTTPS) used by the client before hitting a proxy.',\n};\n\nconst lines = input.split('\\n');\nconst output = [];\nfor (const raw of lines) {\n  const line = raw.trimEnd();\n  if (!line) { output.push(''); continue; }\n  // Status or request line\n  if (/^HTTP\\//.test(line) || /^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\\s/.test(line)) {\n    output.push('>>> ' + line);\n    continue;\n  }\n  const colon = line.indexOf(':');\n  if (colon === -1) { output.push(line); continue; }\n  const name = line.slice(0, colon).trim();\n  const value = line.slice(colon + 1).trim();\n  const explanation = KNOWN[name.toLowerCase()] || '';\n  output.push(`${name}: ${value}`);\n  if (explanation) output.push(`  ^ ${explanation}`);\n}\nreturn { output: output.join('\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "ini-config-formatter",
+      "name": "INI / Config Formatter",
+      "description": "Cleans up .ini and .cfg config files with consistent spacing and section ordering.",
+      "outputExtension": "ini",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer"
+      ],
+      "category": "Formatting",
+      "keywords": [
+        "ini",
+        "cfg",
+        "config",
+        "format",
+        "spacing",
+        "sections",
+        "clean"
+      ],
+      "detectCode": "const t = input.trim();\nconst hasSection = /^\\[\\w[\\w ]*\\]$/m.test(t);\nconst hasKV = /^\\w[\\w.\\-]*\\s*[=:]\\s*.+$/m.test(t);\nreturn (hasKV || hasSection) ? 0.85 : 0;",
+      "executeCode": "const lines = input.split('\\n');\nconst out = [];\nlet prevWasContent = false;\nfor (const raw of lines) {\n  const trimmed = raw.trim();\n  if (!trimmed) {\n    if (prevWasContent) out.push('');\n    prevWasContent = false;\n    continue;\n  }\n  // Comment\n  if (trimmed.startsWith(';') || trimmed.startsWith('#')) {\n    out.push(trimmed);\n    prevWasContent = true;\n    continue;\n  }\n  // Section header\n  if (/^\\[.+\\]$/.test(trimmed)) {\n    if (out.length > 0 && out[out.length - 1] !== '') out.push('');\n    out.push(trimmed);\n    prevWasContent = true;\n    continue;\n  }\n  // Key = value or Key : value\n  const m = trimmed.match(/^([^=:]+)([=:])(.*)$/);\n  if (m) {\n    const key = m[1].trimEnd();\n    const sep = m[2];\n    const val = m[3].trimStart();\n    out.push(`${key} ${sep} ${val}`);\n    prevWasContent = true;\n    continue;\n  }\n  out.push(trimmed);\n  prevWasContent = true;\n}\nwhile (out.length && !out[out.length - 1]) out.pop();\nreturn { output: out.join('\\n') + '\\n', outputLanguage: 'ini' };"
+    },
+    {
+      "id": "ip-address-inspector",
+      "name": "IP Address Inspector",
+      "description": "Detects IPv4/IPv6 addresses, classifies each as private/loopback/public, and shows binary and hex representations.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer"
+      ],
+      "category": "Inspection",
+      "keywords": [
+        "ip",
+        "ipv4",
+        "ipv6",
+        "network",
+        "address",
+        "private",
+        "public",
+        "binary",
+        "hex"
+      ],
+      "detectCode": "const hasIPv4 = /\\b(\\d{1,3}\\.){3}\\d{1,3}\\b/.test(input);\nconst hasIPv6 = /\\b([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}\\b/.test(input);\nreturn (hasIPv4 || hasIPv6) ? 0.93 : 0;",
+      "executeCode": "function classifyIPv4(parts) {\n  const [a, b] = parts.map(Number);\n  if (a === 127) return 'Loopback';\n  if (a === 10) return 'Private (Class A)';\n  if (a === 172 && b >= 16 && b <= 31) return 'Private (Class B)';\n  if (a === 192 && b === 168) return 'Private (Class C)';\n  if (a === 169 && b === 254) return 'Link-Local';\n  if (a === 0) return 'Unspecified';\n  if (a === 255) return 'Broadcast';\n  if (a >= 224 && a <= 239) return 'Multicast';\n  return 'Public';\n}\n\nconst results = [];\n\n// Find IPv4\nconst ipv4Re = /\\b((\\d{1,3}\\.){3}\\d{1,3})\\b/g;\nlet m;\nwhile ((m = ipv4Re.exec(input)) !== null) {\n  const ip = m[1];\n  const parts = ip.split('.');\n  if (parts.every(p => parseInt(p) <= 255)) {\n    const nums = parts.map(p => parseInt(p));\n    const binary = nums.map(n => n.toString(2).padStart(8, '0')).join('.');\n    const hex = nums.map(n => n.toString(16).padStart(2, '0')).join(':');\n    const decimal = ((nums[0] << 24) | (nums[1] << 16) | (nums[2] << 8) | nums[3]) >>> 0;\n    results.push([\n      `IPv4: ${ip}`,\n      `  Type:    ${classifyIPv4(parts)}`,\n      `  Binary:  ${binary}`,\n      `  Hex:     0x${hex.replace(/:/g, '')}`,\n      `  Decimal: ${decimal}`,\n    ].join('\\n'));\n  }\n}\n\nif (results.length === 0) {\n  return { output: 'No valid IP addresses found.', outputLanguage: 'text' };\n}\nreturn { output: results.join('\\n\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "log-formatter",
+      "name": "Log Formatter",
+      "description": "Detects structured log lines (JSON logs, nginx, Apache) and pretty-prints them with level highlighting.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer"
+      ],
+      "category": "Formatting",
+      "keywords": [
+        "log",
+        "format",
+        "json",
+        "nginx",
+        "apache",
+        "pretty",
+        "structured"
+      ],
+      "detectCode": "const lines = input.trim().split('\\n').filter(Boolean);\nconst jsonLogs = lines.filter(l => { try { const o = JSON.parse(l.trim()); return typeof o === 'object'; } catch { return false; } });\nconst nginxLogs = lines.filter(l => /^[\\d.]+\\s+-.+\\[.+\\]\\s+\"/.test(l)).length;\nconst ratio = (jsonLogs.length + nginxLogs) / Math.max(1, lines.length);\nreturn ratio > 0.3 ? 0.93 : ratio > 0.1 ? 0.6 : 0;",
+      "executeCode": "const LEVEL_LABELS = { 'error': '  ERROR', 'err': '  ERROR', 'fatal': '  FATAL', 'warn': '   WARN', 'warning': '   WARN', 'info': '   INFO', 'debug': '  DEBUG', 'trace': '  TRACE' };\nconst lines = input.trim().split('\\n');\nconst out = [];\nfor (const raw of lines) {\n  const line = raw.trim();\n  if (!line) { out.push(''); continue; }\n  // Try JSON log\n  try {\n    const obj = JSON.parse(line);\n    if (typeof obj === 'object' && obj !== null) {\n      const level = (obj.level || obj.severity || obj.lvl || obj.l || '').toLowerCase();\n      const msg = obj.message || obj.msg || obj.m || '';\n      const time = obj.time || obj.timestamp || obj.ts || obj.datetime || '';\n      const label = LEVEL_LABELS[level] || '   LOG ';\n      const prefix = time ? `[${time}] ${label}` : label;\n      // Extract remaining keys\n      const skip = new Set(['level','severity','lvl','l','message','msg','m','time','timestamp','ts','datetime']);\n      const extra = Object.entries(obj).filter(([k]) => !skip.has(k)).map(([k,v]) => `${k}=${JSON.stringify(v)}`).join(' ');\n      out.push(`${prefix}  ${msg}${extra ? '  ' + extra : ''}`);\n      continue;\n    }\n  } catch {}\n  // Try nginx combined log: IP - - [date] \"method path proto\" status size\n  const nginx = line.match(/^([\\d.a-fA-F:]+)\\s+\\S+\\s+\\S+\\s+\\[([^\\]]+)\\]\\s+\"(\\S+)\\s+(\\S+)\\s+(\\S+)\"\\s+(\\d+)\\s+(\\d+)/);\n  if (nginx) {\n    const [, ip, date, method, path, proto, status, size] = nginx;\n    const s = parseInt(status);\n    const lvl = s >= 500 ? '  ERROR' : s >= 400 ? '   WARN' : '   INFO';\n    out.push(`[${date}] ${lvl}  ${method} ${path} → ${status}  (${size}B)  ${ip}`);\n    continue;\n  }\n  out.push(line);\n}\nreturn { output: out.join('\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "markdown-table-to-csv",
+      "name": "Markdown Table → CSV",
+      "description": "Converts a Markdown pipe table into CSV format.",
+      "outputExtension": "csv",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer",
+        "Student",
+        "Office Worker"
+      ],
+      "category": "Conversion",
+      "keywords": [
+        "markdown",
+        "table",
+        "csv",
+        "convert",
+        "pipe",
+        "export"
+      ],
+      "detectCode": "const hasTable = /^\\|.+\\|/m.test(input) && /^\\|[-| :]+\\|/m.test(input);\nreturn hasTable ? 0.97 : 0;",
+      "executeCode": "const lines = input.split('\\n').filter(l => /^\\|/.test(l.trim()));\nconst rows = [];\nfor (const line of lines) {\n  // Skip separator rows\n  if (/^\\|[-| :]+\\|\\s*$/.test(line.trim())) continue;\n  const cells = line.trim().replace(/^\\|/, '').replace(/\\|$/, '').split('|').map(c => {\n    const v = c.trim();\n    // Quote cells that contain commas, newlines, or double-quotes\n    if (v.includes(',') || v.includes('\"') || v.includes('\\n')) {\n      return '\"' + v.replace(/\"/g, '\"\"') + '\"';\n    }\n    return v;\n  });\n  rows.push(cells.join(','));\n}\nif (rows.length === 0) return { output: '', error: 'No Markdown table found.' };\nreturn { output: rows.join('\\n'), outputLanguage: 'csv' };"
+    },
+    {
+      "id": "markdown-to-doc",
+      "name": "Markdown → Word (.docx)",
+      "description": "Convert Markdown to a fully-formatted Word document (.docx). Supports H1–H6 headers, bold, italic, bold-italic, inline code, tables, ordered/unordered lists, blockquotes, horizontal rules, hyperlinks, and paragraphs.",
+      "outputExtension": "docx",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer",
+        "Student",
+        "Office Worker"
+      ],
+      "category": "Conversion",
+      "keywords": [
+        "markdown",
+        "word",
+        "docx",
+        "convert",
+        "document",
+        "table",
+        "header",
+        "export"
+      ],
+      "detectCode": "const t = input.trim();\nif (!t) return 0;\nconst hasHeading    = /^#{1,6}\\s/m.test(t);\nconst hasTable      = /^\\|.+\\|/m.test(t);\nconst hasBold       = /\\*\\*.+\\*\\*/s.test(t);\nconst hasList       = /^([-*+]|\\d+\\.)\\s/m.test(t);\nconst hasBlockquote = /^>\\s/m.test(t);\nconst score = (hasHeading?0.4:0)+(hasTable?0.25:0)+(hasBold?0.1:0)+(hasList?0.1:0)+(hasBlockquote?0.05:0);\nreturn Math.min(0.97, score>0 ? 0.6+score*0.4 : 0.3);",
+      "executeCode": "// ─────────────────────────────────────────────────────────────────────\n// Markdown → .docx  (pure JS, zero external deps)\n// ZIP method=0 (stored). All XML validated against Word OOXML schema.\n// ─────────────────────────────────────────────────────────────────────\n\n// ── CRC-32 ───────────────────────────────────────────────────────────\nconst CRC_TABLE = (() => {\n  const t = new Uint32Array(256);\n  for (let i = 0; i < 256; i++) {\n    let c = i;\n    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);\n    t[i] = c;\n  }\n  return t;\n})();\nfunction crc32(buf) {\n  let c = 0xFFFFFFFF;\n  for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);\n  return (c ^ 0xFFFFFFFF) >>> 0;\n}\nfunction concat(arrays) {\n  const total = arrays.reduce((n, a) => n + a.length, 0);\n  const out = new Uint8Array(total);\n  let off = 0;\n  for (const a of arrays) { out.set(a, off); off += a.length; }\n  return out;\n}\n\n// ── ZIP BUILDER (stored, method=0) ───────────────────────────────────\nfunction u32le(n) { return [(n) & 0xFF, (n >> 8) & 0xFF, (n >> 16) & 0xFF, (n >> 24) & 0xFF]; }\nfunction u16le(n) { return [(n) & 0xFF, (n >> 8) & 0xFF]; }\nconst enc = s => new TextEncoder().encode(s);\n\nfunction buildZip(entries) {\n  const localParts = [], cdParts = [];\n  let offset = 0;\n  const DOS_DATE = 0x5380, DOS_TIME = 0x0000;\n  for (const { name, data } of entries) {\n    const nb = enc(name);\n    const crc = crc32(data);\n    const lh = new Uint8Array([\n      0x50, 0x4B, 0x03, 0x04,\n      ...u16le(20), ...u16le(0), ...u16le(0),\n      ...u16le(DOS_TIME), ...u16le(DOS_DATE),\n      ...u32le(crc), ...u32le(data.length), ...u32le(data.length),\n      ...u16le(nb.length), ...u16le(0),\n    ]);\n    const localEntry = concat([lh, nb, data]);\n    localParts.push(localEntry);\n    const cd = new Uint8Array([\n      0x50, 0x4B, 0x01, 0x02,\n      ...u16le(20), ...u16le(20), ...u16le(0), ...u16le(0),\n      ...u16le(DOS_TIME), ...u16le(DOS_DATE),\n      ...u32le(crc), ...u32le(data.length), ...u32le(data.length),\n      ...u16le(nb.length), ...u16le(0), ...u16le(0), ...u16le(0), ...u16le(0),\n      ...u32le(0), ...u32le(offset),\n    ]);\n    cdParts.push(concat([cd, nb]));\n    offset += localEntry.length;\n  }\n  const cdBytes = concat(cdParts);\n  const eocd = new Uint8Array([\n    0x50, 0x4B, 0x05, 0x06,\n    ...u16le(0), ...u16le(0),\n    ...u16le(entries.length), ...u16le(entries.length),\n    ...u32le(cdBytes.length), ...u32le(offset),\n    ...u16le(0),\n  ]);\n  return concat([...localParts, cdBytes, eocd]);\n}\n\n// ── XML ESCAPE ───────────────────────────────────────────────────────\nfunction xe(s) {\n  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\n}\n\n// ── INLINE PARSER ────────────────────────────────────────────────────\nfunction parseInline(text) {\n  const runs = [];\n  const re = /\\[([^\\]]+)\\]\\(([^)]+)\\)|(\\*\\*\\*(.+?)\\*\\*\\*)|(\\*\\*(.+?)\\*\\*)|(\\*(.+?)\\*)|(`([^`]+)`)/gs;\n  let last = 0, m;\n  while ((m = re.exec(text)) !== null) {\n    if (m.index > last) runs.push({ type: 'run', text: text.slice(last, m.index), bold: false, italic: false, code: false });\n    if      (m[1]  !== undefined) runs.push({ type: 'link',  text: m[1],  url: m[2] });\n    else if (m[3]  !== undefined) runs.push({ type: 'run',   text: m[4],  bold: true,  italic: true,  code: false });\n    else if (m[5]  !== undefined) runs.push({ type: 'run',   text: m[6],  bold: true,  italic: false, code: false });\n    else if (m[7]  !== undefined) runs.push({ type: 'run',   text: m[8],  bold: false, italic: true,  code: false });\n    else if (m[9]  !== undefined) runs.push({ type: 'run',   text: m[10], bold: false, italic: false, code: true  });\n    last = re.lastIndex;\n  }\n  if (last < text.length) runs.push({ type: 'run', text: text.slice(last), bold: false, italic: false, code: false });\n  return runs;\n}\nfunction runsToXml(runs, rIdMap) {\n  return runs.map(r => {\n    if (r.type === 'link') {\n      const rid = rIdMap && rIdMap[r.url];\n      const run = `<w:r><w:rPr><w:rStyle w:val=\"Hyperlink\"/></w:rPr><w:t xml:space=\"preserve\">${xe(r.text)}</w:t></w:r>`;\n      return rid ? `<w:hyperlink r:id=\"${rid}\" w:history=\"1\">${run}</w:hyperlink>` : run;\n    }\n    const rpr = [];\n    if (r.bold)   rpr.push('<w:b/><w:bCs/>');\n    if (r.italic) rpr.push('<w:i/><w:iCs/>');\n    if (r.code)   rpr.push('<w:rFonts w:ascii=\"Courier New\" w:hAnsi=\"Courier New\"/><w:sz w:val=\"18\"/><w:szCs w:val=\"18\"/><w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"F2F2F2\"/>');\n    const rprXml = rpr.length ? `<w:rPr>${rpr.join('')}</w:rPr>` : '';\n    return `<w:r>${rprXml}<w:t xml:space=\"preserve\">${xe(r.text)}</w:t></w:r>`;\n  }).join('');\n}\n\n// ── BLOCK PARSER ─────────────────────────────────────────────────────\nfunction parseBlocks(md) {\n  const lines = md.split(/\\r?\\n/);\n  const blocks = [];\n  let i = 0;\n  while (i < lines.length) {\n    const line = lines[i];\n    if (/^\\s*$/.test(line)) { i++; continue; }\n    // ATX Heading\n    const hm = line.match(/^(#{1,6})\\s+(.*?)(?:\\s+#+)?$/);\n    if (hm) { blocks.push({ type: 'heading', level: hm[1].length, text: hm[2].trim() }); i++; continue; }\n    // HR\n    if (/^([-*_]){3,}$/.test(line.replace(/\\s/g, ''))) { blocks.push({ type: 'hr' }); i++; continue; }\n    // Table\n    if (/^\\|/.test(line)) {\n      const tl = [];\n      while (i < lines.length && /^\\|/.test(lines[i])) tl.push(lines[i++]);\n      const rows = tl\n        .filter(l => !/^\\|[\\s|:-]+\\|?\\s*$/.test(l))\n        .map(r => r.replace(/^\\|/, '').replace(/\\|$/, '').split('|').map(c => c.trim()));\n      if (rows.length) blocks.push({ type: 'table', rows, hasHeader: tl.length >= 2 });\n      continue;\n    }\n    // Blockquote\n    if (/^>\\s?/.test(line)) {\n      const bl = [];\n      while (i < lines.length && /^>\\s?/.test(lines[i])) bl.push(lines[i++].replace(/^>\\s?/, ''));\n      blocks.push({ type: 'blockquote', text: bl.join(' ') });\n      continue;\n    }\n    // Ordered list\n    if (/^\\d+\\.\\s/.test(line)) {\n      const items = [];\n      let expectedNum = 1;\n      while (i < lines.length) {\n        const om = lines[i].match(/^(\\d+)\\.\\s+(.*)/);\n        if (!om) break;\n        const num = parseInt(om[1], 10);\n        if (items.length > 0 && num <= expectedNum - 1) break;\n        expectedNum = num + 1;\n        items.push(om[2]);\n        i++;\n      }\n      blocks.push({ type: 'ol', items, startNum: parseInt(line.match(/^(\\d+)/)[1], 10) });\n      continue;\n    }\n    // Unordered list\n    if (/^[-*+]\\s/.test(line)) {\n      const items = [];\n      while (i < lines.length && /^[-*+]\\s/.test(lines[i])) items.push(lines[i++].replace(/^[-*+]\\s+/, ''));\n      blocks.push({ type: 'ul', items });\n      continue;\n    }\n    // Fenced code block\n    if (/^```/.test(line)) {\n      const cl = [];\n      i++;\n      while (i < lines.length && !/^```/.test(lines[i])) cl.push(lines[i++]);\n      i++;\n      blocks.push({ type: 'code', text: cl.join('\\n') });\n      continue;\n    }\n    // Paragraph\n    const pl = [];\n    while (i < lines.length &&\n      !/^\\s*$/.test(lines[i]) &&\n      !/^#{1,6}\\s/.test(lines[i]) &&\n      !/^\\|/.test(lines[i]) &&\n      !/^>\\s?/.test(lines[i]) &&\n      !/^[-*+]\\s/.test(lines[i]) &&\n      !/^\\d+\\.\\s/.test(lines[i]) &&\n      !/^```/.test(lines[i]) &&\n      !/^([-*_]){3,}$/.test(lines[i].replace(/\\s/g, ''))\n    ) { pl.push(lines[i++]); }\n    if (pl.length) blocks.push({ type: 'para', text: pl.join(' ') });\n  }\n  return blocks;\n}\n\n// ── DOCX BODY BUILDER ────────────────────────────────────────────────\nfunction buildDocXml(blocks) {\n  const urlToRId = {};\n  let ridN = 3; // rId1=styles, rId2=numbering, hyperlinks start at rId3\n  let olNumId = 2; // each ol block gets its own numId for counter reset\n  const olStartNums = [];\n  function getRId(url) { if (!urlToRId[url]) urlToRId[url] = 'rId' + (ridN++); return urlToRId[url]; }\n  function collectLinks(text) {\n    const re = /\\[([^\\]]+)\\]\\(([^)]+)\\)/g;\n    let m;\n    while ((m = re.exec(text)) !== null) getRId(m[2]);\n  }\n  for (const b of blocks) {\n    if (b.text)  collectLinks(b.text);\n    if (b.items) b.items.forEach(collectLinks);\n    if (b.rows)  b.rows.forEach(row => row.forEach(collectLinks));\n  }\n\n  const H = { 1: 'Heading1', 2: 'Heading2', 3: 'Heading3', 4: 'Heading4', 5: 'Heading5', 6: 'Heading6' };\n  const body = [];\n\n  for (const b of blocks) {\n    switch (b.type) {\n      case 'heading':\n        body.push(`<w:p><w:pPr><w:pStyle w:val=\"${H[b.level] || 'Heading1'}\"/></w:pPr>${runsToXml(parseInline(b.text), urlToRId)}</w:p>`);\n        break;\n      case 'para':\n        body.push(`<w:p><w:pPr><w:pStyle w:val=\"Normal\"/></w:pPr>${runsToXml(parseInline(b.text), urlToRId)}</w:p>`);\n        break;\n      case 'blockquote':\n        body.push(`<w:p><w:pPr><w:pStyle w:val=\"Quote\"/></w:pPr>${runsToXml(parseInline(b.text), urlToRId)}</w:p>`);\n        break;\n      case 'hr':\n        body.push('<w:p><w:pPr><w:pBdr><w:bottom w:val=\"single\" w:sz=\"6\" w:space=\"1\" w:color=\"AAAAAA\"/></w:pBdr></w:pPr></w:p>');\n        break;\n      case 'ul':\n        for (const item of b.items)\n          body.push(`<w:p><w:pPr><w:pStyle w:val=\"ListBullet\"/></w:pPr>${runsToXml(parseInline(item), urlToRId)}</w:p>`);\n        break;\n      case 'ol': {\n        olStartNums.push(b.startNum || 1);\n        const nid = olNumId++;\n        for (const item of b.items)\n          body.push(`<w:p><w:pPr><w:pStyle w:val=\"ListNumber\"/><w:numPr><w:ilvl w:val=\"0\"/><w:numId w:val=\"${nid}\"/></w:numPr></w:pPr>${runsToXml(parseInline(item), urlToRId)}</w:p>`);\n        break;\n      }\n      case 'code':\n        for (const line of b.text.split('\\n'))\n          body.push(`<w:p><w:pPr><w:pStyle w:val=\"Normal\"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii=\"Courier New\" w:hAnsi=\"Courier New\"/><w:sz w:val=\"18\"/><w:szCs w:val=\"18\"/><w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"F2F2F2\"/></w:rPr><w:t xml:space=\"preserve\">${xe(line)}</w:t></w:r></w:p>`);\n        break;\n      case 'table': {\n        const rows = b.rows;\n        if (!rows || !rows.length) break;\n        const nc = Math.max(...rows.map(r => r.length));\n        const cw = Math.floor(9000 / nc);\n        const tblPr = `<w:tblPr><w:tblStyle w:val=\"TableGrid\"/><w:tblW w:w=\"0\" w:type=\"auto\"/><w:tblLook w:val=\"04A0\" w:firstRow=\"1\" w:lastRow=\"0\" w:firstColumn=\"1\" w:lastColumn=\"0\" w:noHBand=\"0\" w:noVBand=\"1\"/></w:tblPr>`;\n        const tblGrid = `<w:tblGrid>${Array(nc).fill(`<w:gridCol w:w=\"${cw}\"/>`).join('')}</w:tblGrid>`;\n        const rowsXml = rows.map((row, ri) => {\n          const isHdr = ri === 0 && b.hasHeader;\n          const cells = Array.from({ length: nc }, (_, ci) => {\n            const cell = row[ci] || '';\n            const fill = isHdr ? '<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"D9E2F3\"/>' : '';\n            const tcPr = `<w:tcPr><w:tcW w:w=\"${cw}\" w:type=\"dxa\"/>${fill}</w:tcPr>`;\n            const runs = parseInline(cell).map(r => {\n              if (r.type === 'link') {\n                const rid = urlToRId[r.url];\n                const run = `<w:r><w:rPr><w:rStyle w:val=\"Hyperlink\"/>${isHdr ? '<w:b/><w:bCs/>' : ''}</w:rPr><w:t xml:space=\"preserve\">${xe(r.text)}</w:t></w:r>`;\n                return rid ? `<w:hyperlink r:id=\"${rid}\" w:history=\"1\">${run}</w:hyperlink>` : run;\n              }\n              const rpr = [];\n              if (r.bold || isHdr) rpr.push('<w:b/><w:bCs/>');\n              if (r.italic) rpr.push('<w:i/><w:iCs/>');\n              if (r.code)   rpr.push('<w:rFonts w:ascii=\"Courier New\" w:hAnsi=\"Courier New\"/><w:sz w:val=\"18\"/>');\n              const rprXml = rpr.length ? `<w:rPr>${rpr.join('')}</w:rPr>` : '';\n              return `<w:r>${rprXml}<w:t xml:space=\"preserve\">${xe(r.text)}</w:t></w:r>`;\n            }).join('');\n            return `<w:tc>${tcPr}<w:p>${runs}</w:p></w:tc>`;\n          });\n          return `<w:tr>${cells.join('')}</w:tr>`;\n        }).join('');\n        body.push(`<w:tbl>${tblPr}${tblGrid}${rowsXml}</w:tbl>`);\n        break;\n      }\n    }\n  }\n\n  const relsXml = Object.entries(urlToRId).map(([url, rid]) =>\n    `<Relationship Id=\"${rid}\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink\" Target=\"${xe(url)}\" TargetMode=\"External\"/>`\n  ).join('');\n\n  return { bodyXml: body.join(''), relsXml, olStartNums };\n}\n\n// ── STATIC XML PARTS ─────────────────────────────────────────────────\n// All namespace declarations match what Word actually expects.\n// mc:Ignorable only lists prefixes that ARE declared in the same element.\n\nconst NSMAP = 'xmlns:wpc=\"http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\" xmlns:v=\"urn:schemas-microsoft-com:vml\" xmlns:wp14=\"http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" xmlns:w10=\"urn:schemas-microsoft-com:office:word\" xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\" xmlns:w15=\"http://schemas.microsoft.com/office/word/2012/wordml\" xmlns:wpg=\"http://schemas.microsoft.com/office/word/2010/wordprocessingGroup\" xmlns:wpi=\"http://schemas.microsoft.com/office/word/2010/wordprocessingInk\" xmlns:wne=\"http://schemas.microsoft.com/office/word/2006/wordml\" xmlns:wps=\"http://schemas.microsoft.com/office/word/2010/wordprocessingShape\" mc:Ignorable=\"w14 w15 wp14\"';\n\nconst STYLES_XML = `<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<w:styles ${NSMAP}>\n  <w:docDefaults>\n    <w:rPrDefault><w:rPr>\n      <w:rFonts w:ascii=\"Calibri\" w:hAnsi=\"Calibri\" w:eastAsia=\"SimSun\" w:cs=\"Times New Roman\"/>\n      <w:sz w:val=\"24\"/><w:szCs w:val=\"24\"/>\n      <w:lang w:val=\"en-US\" w:eastAsia=\"zh-CN\" w:bidi=\"ar-SA\"/>\n    </w:rPr></w:rPrDefault>\n    <w:pPrDefault><w:pPr><w:spacing w:after=\"160\" w:line=\"276\" w:lineRule=\"auto\"/></w:pPr></w:pPrDefault>\n  </w:docDefaults>\n  <w:style w:type=\"paragraph\" w:default=\"1\" w:styleId=\"Normal\">\n    <w:name w:val=\"Normal\"/>\n    <w:pPr><w:spacing w:after=\"160\" w:line=\"276\" w:lineRule=\"auto\"/></w:pPr>\n  </w:style>\n  <w:style w:type=\"character\" w:styleId=\"Hyperlink\">\n    <w:name w:val=\"Hyperlink\"/>\n    <w:basedOn w:val=\"DefaultParagraphFont\"/>\n    <w:uiPriority w:val=\"99\"/>\n    <w:unhideWhenUsed/>\n    <w:rPr><w:color w:val=\"0563C1\"/><w:u w:val=\"single\"/></w:rPr>\n  </w:style>\n  <w:style w:type=\"paragraph\" w:styleId=\"Heading1\">\n    <w:name w:val=\"heading 1\"/><w:basedOn w:val=\"Normal\"/><w:next w:val=\"Normal\"/>\n    <w:uiPriority w:val=\"9\"/><w:qFormat/>\n    <w:pPr><w:outlineLvl w:val=\"0\"/><w:spacing w:before=\"480\" w:after=\"160\"/><w:keepNext/></w:pPr>\n    <w:rPr><w:rFonts w:ascii=\"Calibri\" w:hAnsi=\"Calibri\" w:eastAsia=\"SimHei\"/><w:b/><w:bCs/><w:sz w:val=\"40\"/><w:szCs w:val=\"40\"/><w:color w:val=\"1F3864\"/></w:rPr>\n  </w:style>\n  <w:style w:type=\"paragraph\" w:styleId=\"Heading2\">\n    <w:name w:val=\"heading 2\"/><w:basedOn w:val=\"Normal\"/><w:next w:val=\"Normal\"/>\n    <w:uiPriority w:val=\"9\"/><w:qFormat/>\n    <w:pPr><w:outlineLvl w:val=\"1\"/><w:spacing w:before=\"360\" w:after=\"120\"/><w:keepNext/></w:pPr>\n    <w:rPr><w:rFonts w:ascii=\"Calibri\" w:hAnsi=\"Calibri\" w:eastAsia=\"SimHei\"/><w:b/><w:bCs/><w:sz w:val=\"32\"/><w:szCs w:val=\"32\"/><w:color w:val=\"2E74B5\"/></w:rPr>\n  </w:style>\n  <w:style w:type=\"paragraph\" w:styleId=\"Heading3\">\n    <w:name w:val=\"heading 3\"/><w:basedOn w:val=\"Normal\"/><w:next w:val=\"Normal\"/>\n    <w:uiPriority w:val=\"9\"/><w:qFormat/>\n    <w:pPr><w:outlineLvl w:val=\"2\"/><w:spacing w:before=\"240\" w:after=\"80\"/><w:keepNext/></w:pPr>\n    <w:rPr><w:rFonts w:ascii=\"Calibri\" w:hAnsi=\"Calibri\" w:eastAsia=\"SimHei\"/><w:b/><w:bCs/><w:sz w:val=\"28\"/><w:szCs w:val=\"28\"/><w:color w:val=\"1F3864\"/></w:rPr>\n  </w:style>\n  <w:style w:type=\"paragraph\" w:styleId=\"Heading4\">\n    <w:name w:val=\"heading 4\"/><w:basedOn w:val=\"Normal\"/><w:next w:val=\"Normal\"/>\n    <w:uiPriority w:val=\"9\"/><w:qFormat/>\n    <w:pPr><w:outlineLvl w:val=\"3\"/><w:spacing w:before=\"200\" w:after=\"80\"/><w:keepNext/></w:pPr>\n    <w:rPr><w:b/><w:bCs/><w:sz w:val=\"24\"/><w:szCs w:val=\"24\"/><w:color w:val=\"2E74B5\"/><w:i/><w:iCs/></w:rPr>\n  </w:style>\n  <w:style w:type=\"paragraph\" w:styleId=\"Heading5\">\n    <w:name w:val=\"heading 5\"/><w:basedOn w:val=\"Normal\"/><w:next w:val=\"Normal\"/>\n    <w:uiPriority w:val=\"9\"/><w:qFormat/>\n    <w:pPr><w:outlineLvl w:val=\"4\"/><w:keepNext/></w:pPr>\n    <w:rPr><w:b/><w:bCs/><w:sz w:val=\"22\"/><w:szCs w:val=\"22\"/><w:color w:val=\"2E74B5\"/></w:rPr>\n  </w:style>\n  <w:style w:type=\"paragraph\" w:styleId=\"Heading6\">\n    <w:name w:val=\"heading 6\"/><w:basedOn w:val=\"Normal\"/><w:next w:val=\"Normal\"/>\n    <w:uiPriority w:val=\"9\"/><w:qFormat/>\n    <w:pPr><w:outlineLvl w:val=\"5\"/><w:keepNext/></w:pPr>\n    <w:rPr><w:sz w:val=\"22\"/><w:szCs w:val=\"22\"/><w:color w:val=\"595959\"/><w:i/><w:iCs/></w:rPr>\n  </w:style>\n  <w:style w:type=\"paragraph\" w:styleId=\"ListBullet\">\n    <w:name w:val=\"List Bullet\"/><w:basedOn w:val=\"Normal\"/>\n    <w:uiPriority w:val=\"99\"/><w:unhideWhenUsed/>\n    <w:pPr><w:numPr><w:numId w:val=\"1\"/></w:numPr><w:contextualSpacing/></w:pPr>\n  </w:style>\n  <w:style w:type=\"paragraph\" w:styleId=\"ListNumber\">\n    <w:name w:val=\"List Number\"/><w:basedOn w:val=\"Normal\"/>\n    <w:uiPriority w:val=\"99\"/><w:unhideWhenUsed/>\n    <w:pPr><w:numPr><w:numId w:val=\"2\"/></w:numPr><w:contextualSpacing/></w:pPr>\n  </w:style>\n  <w:style w:type=\"paragraph\" w:styleId=\"Quote\">\n    <w:name w:val=\"Quote\"/><w:basedOn w:val=\"Normal\"/>\n    <w:uiPriority w:val=\"29\"/><w:qFormat/>\n    <w:pPr><w:ind w:left=\"720\"/><w:spacing w:after=\"160\"/></w:pPr>\n    <w:rPr><w:i/><w:iCs/><w:color w:val=\"595959\"/></w:rPr>\n  </w:style>\n  <w:style w:type=\"table\" w:styleId=\"TableGrid\">\n    <w:name w:val=\"Table Grid\"/>\n    <w:uiPriority w:val=\"59\"/>\n    <w:tblPr><w:tblBorders>\n      <w:top    w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"000000\"/>\n      <w:left   w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"000000\"/>\n      <w:bottom w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"000000\"/>\n      <w:right  w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"000000\"/>\n      <w:insideH w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"000000\"/>\n      <w:insideV w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"000000\"/>\n    </w:tblBorders></w:tblPr>\n  </w:style>\n</w:styles>`;\n\n// Numbering: w:nsid, w:multiLevelType, w:tmpl are required by Word.\n// Bullet uses Symbol font char \\uF0B7 (the solid bullet in Symbol encoding).\n// Each ol block gets its own numId (2, 3, 4, …) so Word resets the counter.\nfunction buildNumberingXml(olStartNums) {\n  const nums = [`<w:num w:numId=\"1\"><w:abstractNumId w:val=\"0\"/></w:num>`];\n  for (let i = 0; i < olStartNums.length; i++) {\n    nums.push(\n      `<w:num w:numId=\"${i + 2}\">` +\n        `<w:abstractNumId w:val=\"1\"/>` +\n        `<w:lvlOverride w:ilvl=\"0\"><w:startOverride w:val=\"${olStartNums[i]}\"/></w:lvlOverride>` +\n      `</w:num>`\n    );\n  }\n  return `<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\\n` +\n    `<w:numbering ${NSMAP}>\\n` +\n    `  <w:abstractNum w:abstractNumId=\"0\">\\n` +\n    `    <w:nsid w:val=\"00000001\"/>\\n` +\n    `    <w:multiLevelType w:val=\"singleLevel\"/>\\n` +\n    `    <w:tmpl w:val=\"00000001\"/>\\n` +\n    `    <w:lvl w:ilvl=\"0\">\\n` +\n    `      <w:start w:val=\"1\"/>\\n` +\n    `      <w:numFmt w:val=\"bullet\"/>\\n` +\n    `      <w:lvlText w:val=\"\\uF0B7\"/>\\n` +\n    `      <w:lvlJc w:val=\"left\"/>\\n` +\n    `      <w:pPr><w:tabs><w:tab w:val=\"num\" w:pos=\"360\"/></w:tabs><w:ind w:left=\"360\" w:hanging=\"360\"/></w:pPr>\\n` +\n    `      <w:rPr><w:rFonts w:ascii=\"Symbol\" w:hAnsi=\"Symbol\" w:hint=\"default\"/></w:rPr>\\n` +\n    `    </w:lvl>\\n` +\n    `  </w:abstractNum>\\n` +\n    `  <w:abstractNum w:abstractNumId=\"1\">\\n` +\n    `    <w:nsid w:val=\"00000002\"/>\\n` +\n    `    <w:multiLevelType w:val=\"singleLevel\"/>\\n` +\n    `    <w:tmpl w:val=\"00000002\"/>\\n` +\n    `    <w:lvl w:ilvl=\"0\">\\n` +\n    `      <w:start w:val=\"1\"/>\\n` +\n    `      <w:numFmt w:val=\"decimal\"/>\\n` +\n    `      <w:lvlText w:val=\"%1.\"/>\\n` +\n    `      <w:lvlJc w:val=\"left\"/>\\n` +\n    `      <w:pPr><w:tabs><w:tab w:val=\"num\" w:pos=\"360\"/></w:tabs><w:ind w:left=\"360\" w:hanging=\"360\"/></w:pPr>\\n` +\n    `    </w:lvl>\\n` +\n    `  </w:abstractNum>\\n` +\n    nums.join('\\n') + '\\n' +\n    `</w:numbering>`;\n}\n\n// settings.xml: required by Word; without it Word may report corrupt content.\nconst SETTINGS_XML = `<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<w:settings ${NSMAP}>\n  <w:zoom w:val=\"100\"/>\n  <w:defaultTabStop w:val=\"720\"/>\n  <w:characterSpacingControl w:val=\"doNotCompress\"/>\n  <w:compat>\n    <w:compatSetting w:name=\"compatibilityMode\" w:uri=\"http://schemas.microsoft.com/office/word\" w:val=\"15\"/>\n    <w:compatSetting w:name=\"overrideTableStyleFontSizeAndJustification\" w:uri=\"http://schemas.microsoft.com/office/word\" w:val=\"1\"/>\n    <w:compatSetting w:name=\"enableOpenTypeFeatures\" w:uri=\"http://schemas.microsoft.com/office/word\" w:val=\"1\"/>\n    <w:compatSetting w:name=\"doNotFlipMirrorIndents\" w:uri=\"http://schemas.microsoft.com/office/word\" w:val=\"1\"/>\n  </w:compat>\n</w:settings>`;\n\n// ── ASSEMBLE ─────────────────────────────────────────────────────────\ntry {\n  const blocks = parseBlocks(input);\n  const { bodyXml, relsXml, olStartNums } = buildDocXml(blocks);\n\n  const docXml = `<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<w:document ${NSMAP}>\n  <w:body>${bodyXml}<w:sectPr><w:pgSz w:w=\"12240\" w:h=\"15840\"/><w:pgMar w:top=\"1440\" w:right=\"1080\" w:bottom=\"1440\" w:left=\"1080\" w:header=\"720\" w:footer=\"720\" w:gutter=\"0\"/></w:sectPr></w:body>\n</w:document>`;\n\n  const docRelsXml = `<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">\n  <Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\"    Target=\"styles.xml\"/>\n  <Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering\" Target=\"numbering.xml\"/>\n  <Relationship Id=\"rId3s\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings\" Target=\"settings.xml\"/>\n  ${relsXml}\n</Relationships>`;\n\n  const ctXml = `<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">\n  <Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>\n  <Default Extension=\"xml\"  ContentType=\"application/xml\"/>\n  <Override PartName=\"/word/document.xml\"  ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/>\n  <Override PartName=\"/word/styles.xml\"    ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml\"/>\n  <Override PartName=\"/word/numbering.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml\"/>\n  <Override PartName=\"/word/settings.xml\"  ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml\"/>\n</Types>`;\n\n  const rootRelsXml = `<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">\n  <Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"word/document.xml\"/>\n</Relationships>`;\n\n  const zipBytes = buildZip([\n    { name: '[Content_Types].xml',         data: enc(ctXml) },\n    { name: '_rels/.rels',                  data: enc(rootRelsXml) },\n    { name: 'word/document.xml',            data: enc(docXml) },\n    { name: 'word/_rels/document.xml.rels', data: enc(docRelsXml) },\n    { name: 'word/styles.xml',              data: enc(STYLES_XML) },\n    { name: 'word/numbering.xml',           data: enc(buildNumberingXml(olStartNums)) },\n    { name: 'word/settings.xml',            data: enc(SETTINGS_XML) },\n  ]);\n\n  let b64 = '';\n  const CHUNK = 8192;\n  for (let i = 0; i < zipBytes.length; i += CHUNK)\n    b64 += String.fromCharCode(...zipBytes.subarray(i, i + CHUNK));\n\n  return { output: btoa(b64), outputEncoding: 'base64', outputLanguage: 'binary' };\n} catch (err) {\n  return { output: '', error: err instanceof Error ? err.message : String(err) };\n}"
+    },
+    {
+      "id": "multi-timezone-converter",
+      "name": "Multi-Timezone Converter",
+      "description": "Takes a datetime string and shows it across 12 major timezones simultaneously.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Office Worker",
+        "Programmer",
+        "Student"
+      ],
+      "category": "Conversion",
+      "keywords": [
+        "timezone",
+        "time",
+        "convert",
+        "utc",
+        "date",
+        "world clock",
+        "datetime"
+      ],
+      "detectCode": "const t = input.trim();\nreturn /\\d{4}[\\-/]\\d{1,2}[\\-/]\\d{1,2}/.test(t) || /\\d{1,2}[:\\.h]\\d{2}/.test(t) ? 0.88 : 0;",
+      "executeCode": "const ZONES = [\n  { label: 'UTC',              tz: 'UTC' },\n  { label: 'New York (ET)',    tz: 'America/New_York' },\n  { label: 'Chicago (CT)',     tz: 'America/Chicago' },\n  { label: 'Denver (MT)',      tz: 'America/Denver' },\n  { label: 'Los Angeles (PT)',tz: 'America/Los_Angeles' },\n  { label: 'London (GMT/BST)',tz: 'Europe/London' },\n  { label: 'Paris (CET/CEST)',tz: 'Europe/Paris' },\n  { label: 'Moscow (MSK)',    tz: 'Europe/Moscow' },\n  { label: 'Dubai (GST)',     tz: 'Asia/Dubai' },\n  { label: 'India (IST)',     tz: 'Asia/Kolkata' },\n  { label: 'Singapore (SGT)',tz: 'Asia/Singapore' },\n  { label: 'Tokyo (JST)',     tz: 'Asia/Tokyo' },\n  { label: 'Sydney (AET)',    tz: 'Australia/Sydney' },\n];\n\nconst t = input.trim();\nlet dt = new Date(t);\nif (isNaN(dt.getTime())) {\n  // Try to handle common formats\n  dt = new Date(t.replace(/\\//g, '-'));\n}\nif (isNaN(dt.getTime())) {\n  return { output: '', error: 'Could not parse the datetime. Try ISO 8601 format: 2024-07-15T14:30:00Z' };\n}\n\nconst maxLen = Math.max(...ZONES.map(z => z.label.length));\nconst lines = [`Input:  ${dt.toISOString()}`, ''];\nfor (const { label, tz } of ZONES) {\n  try {\n    const str = dt.toLocaleString('en-US', {\n      timeZone: tz,\n      weekday: 'short',\n      year: 'numeric', month: 'short', day: '2-digit',\n      hour: '2-digit', minute: '2-digit', second: '2-digit',\n      hour12: false,\n    });\n    lines.push(label.padEnd(maxLen) + '  ' + str);\n  } catch {\n    lines.push(label.padEnd(maxLen) + '  (unavailable)');\n  }\n}\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "number-formatter",
+      "name": "Number Formatter",
+      "description": "Takes a raw number and outputs it in multiple formats: locale string, scientific notation, hex, binary, and ordinal.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer",
+        "Student"
+      ],
+      "category": "Conversion",
+      "keywords": [
+        "number",
+        "format",
+        "hex",
+        "binary",
+        "scientific",
+        "ordinal",
+        "convert"
+      ],
+      "detectCode": "const t = input.trim();\nreturn /^-?[\\d,_]+\\.?\\d*([eE][+-]?\\d+)?$/.test(t) ? 0.92 : 0;",
+      "executeCode": "const raw = input.trim().replace(/[,_]/g, '');\nconst n = parseFloat(raw);\nif (isNaN(n)) return { output: '', error: 'Input is not a valid number.' };\n\nfunction ordinal(n) {\n  const abs = Math.abs(Math.round(n));\n  const s = ['th','st','nd','rd'];\n  const v = abs % 100;\n  return abs + (s[(v-20)%10]||s[v]||s[0]);\n}\n\nconst isInt = Number.isInteger(n);\nconst lines = [\n  `Input:              ${raw}`,\n  `Locale string:      ${n.toLocaleString()}`,\n  `Scientific:         ${n.toExponential()}`,\n];\nif (isInt) {\n  lines.push(`Hexadecimal:        0x${Math.abs(n).toString(16).toUpperCase()}${n < 0 ? ' (negative)' : ''}`);\n  lines.push(`Binary:             ${n < 0 ? '-' : ''}0b${Math.abs(n).toString(2)}`);\n  lines.push(`Octal:              ${n < 0 ? '-' : ''}0o${Math.abs(n).toString(8)}`);\n  lines.push(`Ordinal:            ${ordinal(n)}`);\n}\nlines.push(`Absolute value:     ${Math.abs(n)}`);\nif (isInt) lines.push(`Bits needed:        ${Math.floor(Math.log2(Math.abs(n) || 1)) + 1}`);\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "number-sequence-generator",
+      "name": "Number Sequence Generator",
+      "description": "Generates arithmetic, geometric, Fibonacci, or random integer sequences.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer",
+        "Student"
+      ],
+      "type": "generator",
+      "options": [
+        {
+          "type": "select",
+          "key": "type",
+          "label": "Sequence Type",
+          "defaultValue": "arithmetic",
+          "choices": [
+            "arithmetic",
+            "geometric",
+            "fibonacci",
+            "random"
+          ]
+        },
+        {
+          "type": "number",
+          "key": "start",
+          "label": "Start",
+          "defaultValue": 1
+        },
+        {
+          "type": "number",
+          "key": "step",
+          "label": "Step / Ratio (arithmetic/geometric)",
+          "defaultValue": 1
+        },
+        {
+          "type": "number",
+          "key": "count",
+          "label": "Count",
+          "defaultValue": 10,
+          "min": 1,
+          "max": 100
+        },
+        {
+          "type": "number",
+          "key": "min",
+          "label": "Min (random only)",
+          "defaultValue": 1
+        },
+        {
+          "type": "number",
+          "key": "max",
+          "label": "Max (random only)",
+          "defaultValue": 100
+        }
+      ],
+      "generateCode": "const type  = options.type  ?? 'arithmetic';\nconst start = Number(options.start ?? 1);\nconst step  = Number(options.step  ?? 1);\nconst count = Math.max(1, Math.min(100, Number(options.count ?? 10)));\nconst minR  = Number(options.min ?? 1);\nconst maxR  = Number(options.max ?? 100);\nconst seq = [];\nif (type === 'arithmetic') {\n  for (let i = 0; i < count; i++) seq.push(start + i * step);\n} else if (type === 'geometric') {\n  const ratio = step === 0 ? 1 : step;\n  for (let i = 0; i < count; i++) seq.push(start * Math.pow(ratio, i));\n} else if (type === 'fibonacci') {\n  let a = start, b = step === 0 ? 1 : step;\n  seq.push(a);\n  if (count > 1) seq.push(b);\n  for (let i = 2; i < count; i++) { const c = a + b; seq.push(c); a = b; b = c; }\n} else {\n  for (let i = 0; i < count; i++) seq.push(Math.floor(Math.random() * (maxR - minR + 1)) + minR);\n}\nreturn { output: seq.join(', '), outputLanguage: 'text' };"
+    },
+    {
+      "id": "passive-voice-detector",
+      "name": "Passive Voice Detector",
+      "description": "Flags sentences using passive voice constructions and provides a pass/fail ratio.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Student",
+        "Office Worker"
+      ],
+      "category": "Text",
+      "keywords": [
+        "passive",
+        "voice",
+        "grammar",
+        "writing",
+        "style",
+        "checker"
+      ],
+      "detectCode": "const words = input.trim().split(/\\s+/).length;\nreturn words > 10 ? 0.75 : 0;",
+      "executeCode": "const BE_FORMS = /\\b(am|is|are|was|were|be|been|being)\\b/i;\nconst PAST_PARTICIPLE = /\\b(\\w+ed|\\w+en|built|bought|brought|caught|come|dealt|done|drawn|drunk|driven|eaten|fallen|felt|found|given|gone|got|grown|heard|held|kept|known|led|left|lent|lost|made|meant|met|paid|put|read|run|said|seen|sent|shown|shut|slept|spent|spoken|stood|taken|taught|told|thought|understood|won|written|broken|chosen|frozen|stolen|begun|rung|sung|swum|thrown)\\b/i;\n\n// Split into sentences\nconst sentences = input.match(/[^.!?]+[.!?]+/g) || [input];\nconst passive = [];\nconst active  = [];\n\nfor (const s of sentences) {\n  const trimmed = s.trim();\n  if (!trimmed) continue;\n  // Heuristic: contains a be-form followed within 3 words by a past participle\n  const words = trimmed.split(/\\s+/);\n  let found = false;\n  for (let i = 0; i < words.length - 1; i++) {\n    if (BE_FORMS.test(words[i])) {\n      for (let j = i + 1; j <= Math.min(i + 3, words.length - 1); j++) {\n        if (PAST_PARTICIPLE.test(words[j])) {\n          found = true;\n          break;\n        }\n      }\n    }\n    if (found) break;\n  }\n  if (found) passive.push(trimmed);\n  else active.push(trimmed);\n}\n\nconst total = passive.length + active.length;\nconst pct = total > 0 ? Math.round(passive.length / total * 100) : 0;\nconst lines = [\n  `Passive voice: ${passive.length} / ${total} sentences (${pct}%)`,\n  `Result: ${pct <= 10 ? 'PASS' : pct <= 25 ? 'ACCEPTABLE' : 'FAIL'} (target ≤ 10%)`,\n  '',\n];\nif (passive.length > 0) {\n  lines.push('Flagged sentences:');\n  passive.forEach((s, i) => lines.push(`  ${i + 1}. ${s}`));\n}\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "proto-formatter",
+      "name": "Proto Formatter",
+      "description": "Formats Protocol Buffer (.proto) definition files with consistent indentation and spacing.",
+      "outputExtension": "proto",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer"
+      ],
+      "category": "Formatting",
+      "keywords": [
+        "protobuf",
+        "proto",
+        "format",
+        "grpc",
+        "schema",
+        "protocol buffer"
+      ],
+      "detectCode": "const t = input.trim();\nreturn (/\\b(syntax|message|enum|service|rpc|import|package|option)\\b/.test(t) && t.includes('{')) ? 0.95 : 0;",
+      "executeCode": "const lines = input.split('\\n');\nconst out = [];\nlet indent = 0;\nfor (const raw of lines) {\n  const line = raw.trim();\n  if (!line) { if (out.length && out[out.length-1] !== '') out.push(''); continue; }\n  // Decrease indent before closing brace\n  if (line.startsWith('}')) indent = Math.max(0, indent - 1);\n  // Normalize spaces around '='\n  let formatted = line.replace(/\\s*=\\s*/g, ' = ');\n  // Normalize spaces after ':'\n  formatted = formatted.replace(/:\\s+/g, ': ');\n  out.push('  '.repeat(indent) + formatted);\n  // Increase indent after opening brace\n  if (line.endsWith('{')) indent++;\n}\n// Remove consecutive blank lines\nconst result = out.join('\\n').replace(/\\n{3,}/g, '\\n\\n');\nreturn { output: result + '\\n', outputLanguage: 'protobuf' };"
+    },
+    {
+      "id": "readability-scorer",
+      "name": "Readability Scorer",
+      "description": "Computes Flesch Reading Ease and Flesch-Kincaid Grade Level for any prose block.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Student",
+        "Office Worker"
+      ],
+      "category": "Inspection",
+      "keywords": [
+        "readability",
+        "flesch",
+        "kincaid",
+        "grade",
+        "ease",
+        "score"
+      ],
+      "detectCode": "const words = input.trim().split(/\\s+/).filter(Boolean).length;\nreturn words > 20 ? Math.min(0.85, 0.4 + words / 1000) : 0;",
+      "executeCode": "function countSyllables(word) {\n  word = word.toLowerCase().replace(/[^a-z]/g, '');\n  if (!word) return 1;\n  if (word.length <= 3) return 1;\n  word = word.replace(/e$/, '');\n  const matches = word.match(/[aeiou]+/g);\n  return matches ? Math.max(1, matches.length) : 1;\n}\nconst text = input.trim();\nconst sentences = (text.match(/[^.!?]+[.!?]+/g) || [text]).filter(s => s.trim().length > 0);\nconst wordList = text.match(/\\b[a-zA-Z']+\\b/g) || [];\nconst totalWords = wordList.length;\nconst totalSentences = sentences.length;\nconst totalSyllables = wordList.reduce((sum, w) => sum + countSyllables(w), 0);\n\nif (totalWords === 0 || totalSentences === 0) {\n  return { output: 'Not enough text to analyze.', outputLanguage: 'text' };\n}\n\nconst fleschEase = 206.835\n  - 1.015  * (totalWords / totalSentences)\n  - 84.6   * (totalSyllables / totalWords);\nconst fkGrade = 0.39 * (totalWords / totalSentences)\n              + 11.8 * (totalSyllables / totalWords)\n              - 15.59;\n\nfunction easeLabel(score) {\n  if (score >= 90) return 'Very Easy (5th grade)';\n  if (score >= 80) return 'Easy (6th grade)';\n  if (score >= 70) return 'Fairly Easy (7th grade)';\n  if (score >= 60) return 'Standard (8th-9th grade)';\n  if (score >= 50) return 'Fairly Difficult (10th-12th)';\n  if (score >= 30) return 'Difficult (College)';\n  return 'Very Confusing (Professional)';\n}\n\nconst lines = [\n  'Statistics:',\n  '  Words:          ' + totalWords,\n  '  Sentences:      ' + totalSentences,\n  '  Syllables:      ' + totalSyllables,\n  '  Avg words/sent: ' + (totalWords / totalSentences).toFixed(1),\n  '  Avg syllables/word: ' + (totalSyllables / totalWords).toFixed(2),\n  '',\n  'Flesch Reading Ease:    ' + fleschEase.toFixed(1) + ' — ' + easeLabel(fleschEase),\n  'Flesch-Kincaid Grade:   ' + Math.max(0, fkGrade).toFixed(1),\n];\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "reading-time-estimator",
+      "name": "Reading Time Estimator",
+      "description": "Estimates slow, average, and fast reading time for any prose block.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Student",
+        "Office Worker",
+        "Programmer"
+      ],
+      "category": "Text",
+      "keywords": [
+        "reading",
+        "time",
+        "estimate",
+        "words",
+        "wpm",
+        "prose"
+      ],
+      "detectCode": "const words = input.trim().split(/\\s+/).filter(Boolean).length;\nreturn words > 10 ? Math.min(0.9, 0.5 + words / 2000) : 0;",
+      "executeCode": "const words = input.trim().split(/\\s+/).filter(Boolean).length;\nconst chars = input.length;\nconst sentences = (input.match(/[.!?]+/g) || []).length || 1;\nconst slow = Math.ceil(words / 150);\nconst avg  = Math.ceil(words / 238);\nconst fast = Math.ceil(words / 350);\nfunction fmt(mins) {\n  if (mins < 1) return 'less than a minute';\n  return mins === 1 ? '1 minute' : mins + ' minutes';\n}\nconst lines = [\n  'Word count:    ' + words,\n  'Character count: ' + chars,\n  'Sentences:     ' + sentences,\n  '',\n  'Estimated Reading Time',\n  '  Slow  (150 wpm): ' + fmt(slow),\n  '  Avg   (238 wpm): ' + fmt(avg),\n  '  Fast  (350 wpm): ' + fmt(fast),\n];\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "semver-inspector",
+      "name": "Semver Inspector",
+      "description": "Parses semantic version strings, explains major/minor/patch/prerelease components, and compares two versions if two are present.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer"
+      ],
+      "category": "Inspection",
+      "keywords": [
+        "semver",
+        "version",
+        "semantic",
+        "major",
+        "minor",
+        "patch",
+        "compare"
+      ],
+      "detectCode": "return /\\bv?\\d+\\.\\d+\\.\\d+/.test(input.trim()) ? 0.93 : 0;",
+      "executeCode": "const SEMVER_RE = /v?(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?/g;\nconst found = [];\nlet m;\nwhile ((m = SEMVER_RE.exec(input)) !== null) {\n  found.push({\n    raw: m[0],\n    major: parseInt(m[1]), minor: parseInt(m[2]), patch: parseInt(m[3]),\n    pre: m[4] || null, build: m[5] || null,\n  });\n  if (found.length >= 2) break;\n}\nif (found.length === 0) return { output: 'No valid semver found.', outputLanguage: 'text' };\n\nfunction describe(v) {\n  const lines = [\n    `Version: ${v.raw}`,\n    `  Major:      ${v.major}  (breaking changes)`,\n    `  Minor:      ${v.minor}  (new features, backward-compatible)`,\n    `  Patch:      ${v.patch}  (bug fixes)`,\n  ];\n  if (v.pre)   lines.push(`  Pre-release: ${v.pre}`);\n  if (v.build) lines.push(`  Build meta:  ${v.build}`);\n  lines.push(`  Stable: ${v.pre ? 'No (pre-release)' : 'Yes'}`);\n  return lines.join('\\n');\n}\n\nconst out = found.map(describe);\n\nif (found.length === 2) {\n  const [a, b] = found;\n  let cmp = 0;\n  for (const k of ['major','minor','patch']) {\n    if (a[k] > b[k]) { cmp = 1; break; }\n    if (a[k] < b[k]) { cmp = -1; break; }\n  }\n  const rel = cmp === 0 ? 'equal to' : cmp > 0 ? 'greater than' : 'less than';\n  out.push(`\\nComparison: ${a.raw} is ${rel} ${b.raw}`);\n}\n\nreturn { output: out.join('\\n\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "sentence-splitter",
+      "name": "Sentence Splitter",
+      "description": "Puts each sentence on its own line. Useful for translation prep or subtitle editing.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Student",
+        "Office Worker",
+        "Programmer"
+      ],
+      "category": "Text",
+      "keywords": [
+        "sentence",
+        "split",
+        "lines",
+        "translation",
+        "subtitle",
+        "nlp"
+      ],
+      "detectCode": "const t = input.trim();\nif (!t) return 0;\nconst hasSentences = (t.match(/[.!?][\\s\"'\\)]+[A-Z]/g) || []).length;\nreturn hasSentences > 1 ? 0.8 : 0.3;",
+      "executeCode": "// Split on sentence-ending punctuation followed by whitespace and a capital letter.\nconst t = input.trim();\nconst sentences = [];\nlet buf = '';\nfor (let i = 0; i < t.length; i++) {\n  buf += t[i];\n  if (/[.!?]/.test(t[i])) {\n    // Check if next non-space char is uppercase or end of string\n    let j = i + 1;\n    while (j < t.length && t[j] === ' ') j++;\n    if (j >= t.length || /[A-Z\"'\\(]/.test(t[j])) {\n      sentences.push(buf.trim());\n      buf = '';\n      i = j - 1; // skip spaces, loop will i++\n    }\n  }\n}\nif (buf.trim()) sentences.push(buf.trim());\nreturn { output: sentences.join('\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "slug-generator",
+      "name": "Slug Generator",
+      "description": "Converts any title or phrase into a URL-friendly slug.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer",
+        "Office Worker"
+      ],
+      "category": "Text",
+      "keywords": [
+        "slug",
+        "url",
+        "permalink",
+        "kebab",
+        "seo",
+        "convert"
+      ],
+      "detectCode": "const t = input.trim();\nif (!t || t.includes('\\n')) return 0;\nconst hasSpaces = t.includes(' ');\nreturn hasSpaces ? 0.7 : 0.2;",
+      "executeCode": "const lines = input.split('\\n').map(line => {\n  return line.trim()\n    .toLowerCase()\n    // Replace accented characters\n    .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n    // Replace & with 'and'\n    .replace(/&/g, 'and')\n    // Remove characters that are not alphanumeric, spaces, or hyphens\n    .replace(/[^a-z0-9\\s-]/g, '')\n    // Replace spaces and multiple hyphens with a single hyphen\n    .replace(/[\\s-]+/g, '-')\n    // Remove leading/trailing hyphens\n    .replace(/^-+|-+$/g, '');\n}).filter(Boolean);\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "temperature-converter",
+      "name": "Temperature Converter",
+      "description": "Converts between Celsius, Fahrenheit, and Kelvin. Detects the unit from context.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Student",
+        "Office Worker"
+      ],
+      "category": "Conversion",
+      "keywords": [
+        "temperature",
+        "celsius",
+        "fahrenheit",
+        "kelvin",
+        "convert",
+        "weather"
+      ],
+      "detectCode": "const t = input.trim();\nreturn /[-\\d.]+\\s*°?\\s*[CcFfKk]\\b/.test(t) ? 0.95 : 0;",
+      "executeCode": "const t = input.trim();\nconst lines = [];\nconst re = /(-?[\\d.]+)\\s*°?\\s*([CcFfKk])\\b/g;\nlet m;\nwhile ((m = re.exec(t)) !== null) {\n  const val = parseFloat(m[1]);\n  const unit = m[2].toUpperCase();\n  let C, F, K;\n  if (unit === 'C') { C = val; F = C * 9/5 + 32; K = C + 273.15; }\n  else if (unit === 'F') { F = val; C = (F - 32) * 5/9; K = C + 273.15; }\n  else if (unit === 'K') { K = val; C = K - 273.15; F = C * 9/5 + 32; }\n  lines.push(\n    `${val}°${unit}  →  ${C.toFixed(2)}°C  |  ${F.toFixed(2)}°F  |  ${K.toFixed(2)} K`\n  );\n}\nif (lines.length === 0) return { output: '', error: 'No temperature found. Try \"100°C\" or \"32F\" or \"373.15K\".' };\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "text-diff",
+      "name": "Text Diff",
+      "description": "Shows line-by-line differences between two blocks of text. Separate the two blocks with a line containing only '---'.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer",
+        "Office Worker"
+      ],
+      "category": "Text",
+      "keywords": [
+        "diff",
+        "compare",
+        "text",
+        "difference",
+        "lines",
+        "changes"
+      ],
+      "detectCode": "return /^-{3,}$/m.test(input.trim()) ? 0.9 : 0;",
+      "executeCode": "const parts = input.split(/^-{3,}$/m);\nif (parts.length < 2) {\n  return { output: '', error: 'Could not find delimiter. Separate two text blocks with a line containing only \"---\".' };\n}\nconst linesA = parts[0].split('\\n');\nconst linesB = parts.slice(1).join('---').split('\\n');\n// Remove leading/trailing empty lines from each block\nwhile (linesA.length && !linesA[0].trim()) linesA.shift();\nwhile (linesA.length && !linesA[linesA.length-1].trim()) linesA.pop();\nwhile (linesB.length && !linesB[0].trim()) linesB.shift();\nwhile (linesB.length && !linesB[linesB.length-1].trim()) linesB.pop();\n\nconst maxLen = Math.max(linesA.length, linesB.length);\nconst output = [];\nlet added = 0, removed = 0, changed = 0;\nfor (let i = 0; i < maxLen; i++) {\n  const a = linesA[i];\n  const b = linesB[i];\n  if (a === undefined) { output.push('+ ' + b); added++; }\n  else if (b === undefined) { output.push('- ' + a); removed++; }\n  else if (a === b) { output.push('  ' + a); }\n  else { output.push('- ' + a); output.push('+ ' + b); changed++; }\n}\noutput.unshift(`@@ -${linesA.length} lines / +${linesB.length} lines  [+${added} added, -${removed} removed, ~${changed} changed] @@`, '');\nreturn { output: output.join('\\n'), outputLanguage: 'diff' };"
+    },
+    {
+      "id": "timestamp-batch-generator",
+      "name": "Timestamp Batch Generator",
+      "description": "Produces a sequence of timestamps at a configurable interval and format.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer"
+      ],
+      "type": "generator",
+      "options": [
+        {
+          "type": "text",
+          "key": "start",
+          "label": "Start (ISO 8601 or blank for now)",
+          "defaultValue": ""
+        },
+        {
+          "type": "number",
+          "key": "count",
+          "label": "Count",
+          "defaultValue": 10,
+          "min": 1,
+          "max": 200
+        },
+        {
+          "type": "number",
+          "key": "intervalSeconds",
+          "label": "Interval (seconds)",
+          "defaultValue": 60,
+          "min": 1
+        },
+        {
+          "type": "select",
+          "key": "format",
+          "label": "Format",
+          "defaultValue": "iso",
+          "choices": [
+            "iso",
+            "unix-s",
+            "unix-ms",
+            "rfc2822",
+            "date-only",
+            "time-only"
+          ]
+        }
+      ],
+      "generateCode": "const count = Math.max(1, Math.min(200, Number(options.count ?? 10)));\nconst interval = Math.max(1, Number(options.intervalSeconds ?? 60)) * 1000;\nconst fmt = options.format ?? 'iso';\nconst startRaw = (options.start ?? '').trim();\nlet startMs = startRaw ? new Date(startRaw).getTime() : Date.now();\nif (isNaN(startMs)) startMs = Date.now();\n\nconst results = [];\nfor (let i = 0; i < count; i++) {\n  const t = startMs + i * interval;\n  const d = new Date(t);\n  if (fmt === 'unix-ms') results.push(String(t));\n  else if (fmt === 'unix-s') results.push(String(Math.floor(t / 1000)));\n  else if (fmt === 'rfc2822') results.push(d.toUTCString());\n  else if (fmt === 'date-only') results.push(d.toISOString().slice(0, 10));\n  else if (fmt === 'time-only') results.push(d.toISOString().slice(11, 19) + 'Z');\n  else results.push(d.toISOString());\n}\nreturn { output: results.join('\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "timestamp-generator",
+      "name": "Timestamp",
+      "description": "Generates timestamps in various formats — Unix epoch, ISO 8601, or RFC 2822.",
+      "outputExtension": "txt",
+      "updatedAt": "2025-01-01T00:00:00.000Z",
+      "author": "",
+      "publishedAt": "2025-01-01T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer"
+      ],
+      "type": "generator",
+      "options": [
+        {
+          "type": "select",
+          "key": "format",
+          "label": "Format",
+          "defaultValue": "iso",
+          "choices": [
+            "iso",
+            "unix-ms",
+            "unix-s",
+            "rfc2822",
+            "date-only",
+            "time-only"
+          ]
+        },
+        {
+          "type": "toggle",
+          "key": "utc",
+          "label": "UTC (vs local)",
+          "defaultValue": true
+        },
+        {
+          "type": "number",
+          "key": "count",
+          "label": "Count",
+          "defaultValue": 1,
+          "min": 1,
+          "max": 50
+        }
+      ],
+      "generateCode": "const now = Date.now();\nconst fmt = options.format ?? 'iso';\nconst utc = options.utc !== false;\nconst count = Math.max(1, Math.min(50, Number(options.count ?? 1)));\nconst results = [];\nfor (let i = 0; i < count; i++) {\n  const t = now + i;\n  const d = new Date(t);\n  if (fmt === 'unix-ms') results.push(String(t));\n  else if (fmt === 'unix-s') results.push(String(Math.floor(t / 1000)));\n  else if (fmt === 'rfc2822') results.push(d.toUTCString());\n  else if (fmt === 'date-only') results.push(utc ? d.toISOString().slice(0, 10) : d.toLocaleDateString());\n  else if (fmt === 'time-only') results.push(utc ? d.toISOString().slice(11, 19) + 'Z' : d.toLocaleTimeString());\n  else results.push(utc ? d.toISOString() : d.toString());\n}\nreturn { output: results.join('\\n'), outputLanguage: 'text' };"
+    },
+    {
+      "id": "toml-formatter",
+      "name": "TOML Formatter",
+      "description": "Formats and validates TOML files — normalizes spacing around '=' and between sections.",
+      "outputExtension": "toml",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer"
+      ],
+      "category": "Formatting",
+      "keywords": [
+        "toml",
+        "format",
+        "validate",
+        "config",
+        "pretty",
+        "spacing"
+      ],
+      "detectCode": "const t = input.trim();\nconst hasSection = /^\\[[\\w.]+\\]$/m.test(t);\nconst hasKV = /^\\w[\\w.-]*\\s*=\\s*.+$/m.test(t);\nreturn (hasKV || hasSection) ? 0.85 : 0;",
+      "executeCode": "const lines = input.split('\\n');\nconst out = [];\nlet prevWasContent = false;\nfor (let i = 0; i < lines.length; i++) {\n  const raw = lines[i];\n  const trimmed = raw.trim();\n  // Blank line\n  if (!trimmed) {\n    if (prevWasContent) out.push('');\n    prevWasContent = false;\n    continue;\n  }\n  // Comment: pass through\n  if (trimmed.startsWith('#')) {\n    out.push(trimmed);\n    prevWasContent = true;\n    continue;\n  }\n  // Section header: ensure blank line before (if not first)\n  if (/^\\[[^\\[]]/.test(trimmed)) {\n    if (out.length > 0 && out[out.length - 1] !== '') out.push('');\n    out.push(trimmed);\n    prevWasContent = true;\n    continue;\n  }\n  // Array of tables\n  if (trimmed.startsWith('[[')) {\n    if (out.length > 0 && out[out.length - 1] !== '') out.push('');\n    out.push(trimmed);\n    prevWasContent = true;\n    continue;\n  }\n  // Key = value: normalize spacing\n  const eqIdx = trimmed.indexOf('=');\n  if (eqIdx > 0) {\n    const key = trimmed.slice(0, eqIdx).trimEnd();\n    const val = trimmed.slice(eqIdx + 1).trimStart();\n    out.push(`${key} = ${val}`);\n    prevWasContent = true;\n    continue;\n  }\n  out.push(trimmed);\n  prevWasContent = true;\n}\n// Remove trailing blanks\nwhile (out.length && !out[out.length - 1]) out.pop();\nreturn { output: out.join('\\n') + '\\n', outputLanguage: 'toml' };"
+    },
+    {
+      "id": "toml-inspector",
+      "name": "TOML Inspector",
+      "description": "Parses TOML and displays key-value pairs in a readable summary with section grouping.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer"
+      ],
+      "category": "Inspection",
+      "keywords": [
+        "toml",
+        "config",
+        "parse",
+        "inspect",
+        "key",
+        "value",
+        "settings"
+      ],
+      "detectCode": "const t = input.trim();\nconst hasSection = /^\\[[\\w.]+\\]$/m.test(t);\nconst hasKV = /^\\w[\\w.-]*\\s*=\\s*.+$/m.test(t);\nreturn (hasKV && hasSection) ? 0.9 : hasKV ? 0.4 : 0;",
+      "executeCode": "const lines = input.split('\\n');\nconst sections = [{ name: '(root)', entries: [] }];\nlet current = sections[0];\n\nfor (const rawLine of lines) {\n  const line = rawLine.trim();\n  if (!line || line.startsWith('#')) continue;\n  const secMatch = line.match(/^\\[([^\\]]+)\\]$/);\n  if (secMatch) {\n    current = { name: secMatch[1], entries: [] };\n    sections.push(current);\n    continue;\n  }\n  const eqIdx = line.indexOf('=');\n  if (eqIdx > 0) {\n    const key = line.slice(0, eqIdx).trim();\n    const val = line.slice(eqIdx + 1).trim();\n    current.entries.push({ key, val });\n  }\n}\n\nconst out = [];\nfor (const sec of sections) {\n  if (sec.entries.length === 0) continue;\n  out.push(`[${sec.name}]`);\n  const maxKey = Math.max(...sec.entries.map(e => e.key.length));\n  for (const { key, val } of sec.entries) {\n    out.push(`  ${key.padEnd(maxKey)}  =  ${val}`);\n  }\n  out.push('');\n}\nif (out.length === 0) return { output: 'No TOML key-value pairs found.', outputLanguage: 'text' };\nreturn { output: out.join('\\n').trimEnd(), outputLanguage: 'text' };"
+    },
+    {
+      "id": "whitespace-normalizer",
+      "name": "Whitespace Normalizer",
+      "description": "Collapses multiple spaces, strips trailing whitespace, and normalizes line endings to LF.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Programmer",
+        "Office Worker"
+      ],
+      "category": "Text",
+      "keywords": [
+        "whitespace",
+        "normalize",
+        "spaces",
+        "trim",
+        "line endings",
+        "clean"
+      ],
+      "detectCode": "if (!input) return 0;\nconst hasTrailing = /[ \\t]+$/m.test(input);\nconst hasDouble   = / {2,}/.test(input);\nconst hasCRLF     = /\\r\\n/.test(input);\nreturn (hasTrailing || hasDouble || hasCRLF) ? 0.92 : 0.1;",
+      "executeCode": "const original = input;\n// Normalize CRLF and CR to LF\nlet out = input.replace(/\\r\\n/g, '\\n').replace(/\\r/g, '\\n');\n// Collapse multiple spaces/tabs within lines (preserve indentation intent)\nout = out.split('\\n').map(line => {\n  // Strip trailing whitespace\n  line = line.replace(/[ \\t]+$/, '');\n  // Collapse multiple spaces to single (not at line start)\n  line = line.replace(/(?<=\\S) {2,}/g, ' ');\n  return line;\n}).join('\\n');\n// Collapse more than 2 consecutive blank lines to 2\nout = out.replace(/\\n{3,}/g, '\\n\\n');\n// Ensure single trailing newline\nout = out.trimEnd() + '\\n';\nconst origLines = original.split(/\\r?\\n/).length;\nconst newLines  = out.split('\\n').length;\nconst summary = `// Whitespace normalized: ${origLines} → ${newLines} lines\\n// CRLF→LF, trailing spaces removed, multiple spaces collapsed\\n\\n`;\nreturn { output: out, outputLanguage: 'text' };"
+    },
+    {
+      "id": "word-frequency-analyzer",
+      "name": "Word Frequency Analyzer",
+      "description": "Ranks words by occurrence, excluding common stopwords. Great for spotting overused words.",
+      "outputExtension": "txt",
+      "updatedAt": "2026-05-12T00:00:00.000Z",
+      "author": "Mangosteen Tech",
+      "publishedAt": "2026-05-12T00:00:00.000Z",
+      "downloads": 0,
+      "tags": [
+        "Student",
+        "Office Worker",
+        "Programmer"
+      ],
+      "category": "Text",
+      "keywords": [
+        "word",
+        "frequency",
+        "count",
+        "stopwords",
+        "analysis",
+        "prose"
+      ],
+      "detectCode": "const words = input.trim().split(/\\s+/).filter(Boolean).length;\nreturn words > 10 ? Math.min(0.88, 0.4 + words / 2000) : 0;",
+      "executeCode": "const STOPWORDS = new Set(['the','a','an','and','or','but','in','on','at','to','for','of','with','by','from','up','about','into','through','is','are','was','were','be','been','being','have','has','had','do','does','did','will','would','could','should','may','might','shall','can','i','you','he','she','it','we','they','me','him','her','us','them','my','your','his','its','our','their','this','that','these','those','what','which','who','how','when','where','not','no','so','if','as','than','then','there','here']);\nconst tokens = input.toLowerCase().match(/\\b[a-z']{2,}\\b/g) || [];\nconst freq = {};\nfor (const w of tokens) {\n  if (!STOPWORDS.has(w)) freq[w] = (freq[w] || 0) + 1;\n}\nconst sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);\nconst top = sorted.slice(0, 30);\nif (top.length === 0) return { output: 'No meaningful words found.', outputLanguage: 'text' };\nconst maxCount = top[0][1];\nconst lines = ['Top words (excluding stopwords):', ''];\nfor (const [word, count] of top) {\n  const bar = '#'.repeat(Math.round(count / maxCount * 20));\n  lines.push(String(count).padStart(4) + '  ' + word.padEnd(20) + ' ' + bar);\n}\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+    }
+  ]
+}

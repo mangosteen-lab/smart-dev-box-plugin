@@ -1,0 +1,17 @@
+{
+  "name": "smart-dev-box-plugin",
+  "version": "1.0.0",
+  "description": "Plugin store for Smart Dev Box",
+  "scripts": {
+    "test": "jest --testPathPattern=tests/",
+    "test:coverage": "jest --testPathPattern=tests/ --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jszip": "^3.10.1"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/tests/**/*.test.js"]
+  }
+}

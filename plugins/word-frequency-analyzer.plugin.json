@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "word-frequency-analyzer",
+    "name": "Word Frequency Analyzer",
+    "category": "Text",
+    "description": "Ranks words by occurrence, excluding common stopwords. Great for spotting overused words.",
+    "keywords": ["word", "frequency", "count", "stopwords", "analysis", "prose"],
+    "tags": ["Student", "Office Worker", "Programmer"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const words = input.trim().split(/\\s+/).filter(Boolean).length;\nreturn words > 10 ? Math.min(0.88, 0.4 + words / 2000) : 0;",
+    "executeCode": "const STOPWORDS = new Set(['the','a','an','and','or','but','in','on','at','to','for','of','with','by','from','up','about','into','through','is','are','was','were','be','been','being','have','has','had','do','does','did','will','would','could','should','may','might','shall','can','i','you','he','she','it','we','they','me','him','her','us','them','my','your','his','its','our','their','this','that','these','those','what','which','who','how','when','where','not','no','so','if','as','than','then','there','here']);\nconst tokens = input.toLowerCase().match(/\\b[a-z']{2,}\\b/g) || [];\nconst freq = {};\nfor (const w of tokens) {\n  if (!STOPWORDS.has(w)) freq[w] = (freq[w] || 0) + 1;\n}\nconst sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);\nconst top = sorted.slice(0, 30);\nif (top.length === 0) return { output: 'No meaningful words found.', outputLanguage: 'text' };\nconst maxCount = top[0][1];\nconst lines = ['Top words (excluding stopwords):', ''];\nfor (const [word, count] of top) {\n  const bar = '#'.repeat(Math.round(count / maxCount * 20));\n  lines.push(String(count).padStart(4) + '  ' + word.padEnd(20) + ' ' + bar);\n}\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+  }
+}

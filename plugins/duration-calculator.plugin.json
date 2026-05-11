@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "duration-calculator",
+    "name": "Duration Calculator",
+    "category": "Conversion",
+    "description": "Converts plain English durations (e.g. '2 hours 45 minutes') to seconds and vice versa.",
+    "keywords": ["duration", "time", "convert", "seconds", "minutes", "hours", "parse"],
+    "tags": ["Programmer", "Office Worker"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const t = input.trim().toLowerCase();\nconst hasWords = /\\b(hour|minute|second|day|week|hr|min|sec)s?\\b/.test(t);\nconst hasNum = /\\d/.test(t);\nreturn (hasWords && hasNum) ? 0.92 : /^\\d+\\s*s$/.test(t) ? 0.7 : 0;",
+    "executeCode": "const t = input.trim().toLowerCase();\n// Check if it's a raw seconds input\nconst rawSeconds = t.match(/^([\\d.]+)\\s*(s|sec|seconds?)$/);\nlet totalSeconds;\nif (rawSeconds) {\n  totalSeconds = parseFloat(rawSeconds[1]);\n} else {\n  totalSeconds = 0;\n  const patterns = [\n    { re: /([\\d.]+)\\s*w(eeks?)?/, mult: 7 * 86400 },\n    { re: /([\\d.]+)\\s*d(ays?)?/, mult: 86400 },\n    { re: /([\\d.]+)\\s*(h(ours?|rs?)?)/, mult: 3600 },\n    { re: /([\\d.]+)\\s*(m(inutes?|ins?)?)(?!s)/, mult: 60 },\n    { re: /([\\d.]+)\\s*(s(econds?|ecs?)?)/, mult: 1 },\n  ];\n  for (const { re, mult } of patterns) {\n    const m = t.match(re);\n    if (m) totalSeconds += parseFloat(m[1]) * mult;\n  }\n}\n\nif (totalSeconds === 0) return { output: '', error: 'Could not parse duration. Try \"2 hours 30 minutes\" or \"9000 seconds\".' };\n\nconst weeks  = Math.floor(totalSeconds / 604800);\nconst days   = Math.floor((totalSeconds % 604800) / 86400);\nconst hours  = Math.floor((totalSeconds % 86400) / 3600);\nconst mins   = Math.floor((totalSeconds % 3600) / 60);\nconst secs   = Math.round(totalSeconds % 60);\nconst parts  = [];\nif (weeks)  parts.push(weeks  + ' week'   + (weeks  > 1 ? 's' : ''));\nif (days)   parts.push(days   + ' day'    + (days   > 1 ? 's' : ''));\nif (hours)  parts.push(hours  + ' hour'   + (hours  > 1 ? 's' : ''));\nif (mins)   parts.push(mins   + ' minute' + (mins   > 1 ? 's' : ''));\nif (secs)   parts.push(secs   + ' second' + (secs   > 1 ? 's' : ''));\n\nconst hms = [hours + days*24 + weeks*168, mins, secs].map(n => String(n).padStart(2,'0')).join(':');\nconst lines = [\n  `Total seconds:  ${totalSeconds}`,\n  `HH:MM:SS:       ${hms}`,\n  `Human:          ${parts.join(', ')}`,\n  `Minutes:        ${(totalSeconds / 60).toFixed(2)}`,\n  `Hours:          ${(totalSeconds / 3600).toFixed(4)}`,\n];\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+  }
+}

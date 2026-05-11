@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "semver-inspector",
+    "name": "Semver Inspector",
+    "category": "Inspection",
+    "description": "Parses semantic version strings, explains major/minor/patch/prerelease components, and compares two versions if two are present.",
+    "keywords": ["semver", "version", "semantic", "major", "minor", "patch", "compare"],
+    "tags": ["Programmer"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "return /\\bv?\\d+\\.\\d+\\.\\d+/.test(input.trim()) ? 0.93 : 0;",
+    "executeCode": "const SEMVER_RE = /v?(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?/g;\nconst found = [];\nlet m;\nwhile ((m = SEMVER_RE.exec(input)) !== null) {\n  found.push({\n    raw: m[0],\n    major: parseInt(m[1]), minor: parseInt(m[2]), patch: parseInt(m[3]),\n    pre: m[4] || null, build: m[5] || null,\n  });\n  if (found.length >= 2) break;\n}\nif (found.length === 0) return { output: 'No valid semver found.', outputLanguage: 'text' };\n\nfunction describe(v) {\n  const lines = [\n    `Version: ${v.raw}`,\n    `  Major:      ${v.major}  (breaking changes)`,\n    `  Minor:      ${v.minor}  (new features, backward-compatible)`,\n    `  Patch:      ${v.patch}  (bug fixes)`,\n  ];\n  if (v.pre)   lines.push(`  Pre-release: ${v.pre}`);\n  if (v.build) lines.push(`  Build meta:  ${v.build}`);\n  lines.push(`  Stable: ${v.pre ? 'No (pre-release)' : 'Yes'}`);\n  return lines.join('\\n');\n}\n\nconst out = found.map(describe);\n\nif (found.length === 2) {\n  const [a, b] = found;\n  let cmp = 0;\n  for (const k of ['major','minor','patch']) {\n    if (a[k] > b[k]) { cmp = 1; break; }\n    if (a[k] < b[k]) { cmp = -1; break; }\n  }\n  const rel = cmp === 0 ? 'equal to' : cmp > 0 ? 'greater than' : 'less than';\n  out.push(`\\nComparison: ${a.raw} is ${rel} ${b.raw}`);\n}\n\nreturn { output: out.join('\\n\\n'), outputLanguage: 'text' };"
+  }
+}

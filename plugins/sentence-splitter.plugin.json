@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "sentence-splitter",
+    "name": "Sentence Splitter",
+    "category": "Text",
+    "description": "Puts each sentence on its own line. Useful for translation prep or subtitle editing.",
+    "keywords": ["sentence", "split", "lines", "translation", "subtitle", "nlp"],
+    "tags": ["Student", "Office Worker", "Programmer"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const t = input.trim();\nif (!t) return 0;\nconst hasSentences = (t.match(/[.!?][\\s\"'\\)]+[A-Z]/g) || []).length;\nreturn hasSentences > 1 ? 0.8 : 0.3;",
+    "executeCode": "// Split on sentence-ending punctuation followed by whitespace and a capital letter.\nconst t = input.trim();\nconst sentences = [];\nlet buf = '';\nfor (let i = 0; i < t.length; i++) {\n  buf += t[i];\n  if (/[.!?]/.test(t[i])) {\n    // Check if next non-space char is uppercase or end of string\n    let j = i + 1;\n    while (j < t.length && t[j] === ' ') j++;\n    if (j >= t.length || /[A-Z\"'\\(]/.test(t[j])) {\n      sentences.push(buf.trim());\n      buf = '';\n      i = j - 1; // skip spaces, loop will i++\n    }\n  }\n}\nif (buf.trim()) sentences.push(buf.trim());\nreturn { output: sentences.join('\\n'), outputLanguage: 'text' };"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "csv-to-markdown-table",
+    "name": "CSV → Markdown Table",
+    "category": "Conversion",
+    "description": "Converts CSV data into an aligned Markdown pipe table.",
+    "keywords": ["csv", "markdown", "table", "convert", "pipe", "format"],
+    "tags": ["Programmer", "Student", "Office Worker"],
+    "outputExtension": "md",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const lines = input.trim().split('\\n').filter(Boolean);\nif (lines.length < 2) return 0;\nconst commas = lines.map(l => (l.match(/,/g) || []).length);\nconst consistent = commas.every(c => c === commas[0]) && commas[0] > 0;\nreturn consistent ? 0.9 : 0;",
+    "executeCode": "function parseCSVLine(line) {\n  const cells = [];\n  let cur = '', inQuote = false;\n  for (let i = 0; i < line.length; i++) {\n    const ch = line[i];\n    if (ch === '\"') {\n      if (inQuote && line[i+1] === '\"') { cur += '\"'; i++; }\n      else inQuote = !inQuote;\n    } else if (ch === ',' && !inQuote) {\n      cells.push(cur); cur = '';\n    } else {\n      cur += ch;\n    }\n  }\n  cells.push(cur);\n  return cells.map(c => c.trim());\n}\n\nconst lines = input.trim().split('\\n').filter(Boolean);\nconst rows = lines.map(parseCSVLine);\nconst colCount = Math.max(...rows.map(r => r.length));\n// Pad rows\nfor (const r of rows) while (r.length < colCount) r.push('');\n// Compute column widths\nconst widths = Array.from({ length: colCount }, (_, i) =>\n  Math.max(3, ...rows.map(r => r[i].length))\n);\nconst sep = '|' + widths.map(w => '-'.repeat(w + 2)).join('|') + '|';\nconst format = row => '| ' + row.map((c, i) => c.padEnd(widths[i])).join(' | ') + ' |';\nconst [header, ...body] = rows;\nconst out = [format(header), sep, ...body.map(format)].join('\\n');\nreturn { output: out, outputLanguage: 'markdown' };"
+  }
+}

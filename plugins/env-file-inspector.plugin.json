@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "env-file-inspector",
+    "name": ".env File Inspector",
+    "category": "Inspection",
+    "description": "Lists all variables, flags empty values, and redacts common secret key names.",
+    "keywords": ["env", "environment", "variables", "secrets", "dotenv", "config"],
+    "tags": ["Programmer"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const lines = input.trim().split('\\n').filter(l => l.trim() && !l.trim().startsWith('#'));\nconst keyVal = lines.filter(l => /^[A-Z_][A-Z0-9_]*\\s*=/i.test(l)).length;\nreturn lines.length > 0 && keyVal / lines.length > 0.5 ? 0.95 : 0;",
+    "executeCode": "const SECRET_PATTERNS = /secret|password|passwd|pwd|token|api[_-]?key|private[_-]?key|auth|credential|access[_-]?key|signing[_-]?key/i;\nconst lines = input.split('\\n');\nconst vars = [];\nlet commentCount = 0;\nfor (const raw of lines) {\n  const line = raw.trim();\n  if (!line) continue;\n  if (line.startsWith('#')) { commentCount++; continue; }\n  const m = line.match(/^([^=]+)=(.*)$/);\n  if (!m) continue;\n  const key = m[1].trim();\n  const val = m[2].trim();\n  const isEmpty = val === '';\n  const isSecret = SECRET_PATTERNS.test(key);\n  vars.push({ key, val, isEmpty, isSecret });\n}\nconst total = vars.length;\nconst emptyCount = vars.filter(v => v.isEmpty).length;\nconst secretCount = vars.filter(v => v.isSecret).length;\nconst header = [\n  `.env Inspector`,\n  `  Total variables: ${total}`,\n  `  Empty values:    ${emptyCount}`,\n  `  Secrets redacted: ${secretCount}`,\n  `  Comment lines:   ${commentCount}`,\n  '',\n  `${'KEY'.padEnd(35)} VALUE`,\n  '-'.repeat(70),\n];\nconst rows = vars.map(v => {\n  let display = v.val;\n  if (v.isSecret && v.val) display = '[REDACTED]';\n  else if (v.isEmpty) display = '(empty)';\n  const flag = v.isEmpty ? ' ⚠ EMPTY' : v.isSecret ? ' 🔒 SECRET' : '';\n  return v.key.padEnd(35) + ' ' + display + flag;\n});\nreturn { output: [...header, ...rows].join('\\n'), outputLanguage: 'text' };"
+  }
+}

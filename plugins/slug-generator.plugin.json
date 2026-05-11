@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "slug-generator",
+    "name": "Slug Generator",
+    "category": "Text",
+    "description": "Converts any title or phrase into a URL-friendly slug.",
+    "keywords": ["slug", "url", "permalink", "kebab", "seo", "convert"],
+    "tags": ["Programmer", "Office Worker"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const t = input.trim();\nif (!t || t.includes('\\n')) return 0;\nconst hasSpaces = t.includes(' ');\nreturn hasSpaces ? 0.7 : 0.2;",
+    "executeCode": "const lines = input.split('\\n').map(line => {\n  return line.trim()\n    .toLowerCase()\n    // Replace accented characters\n    .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n    // Replace & with 'and'\n    .replace(/&/g, 'and')\n    // Remove characters that are not alphanumeric, spaces, or hyphens\n    .replace(/[^a-z0-9\\s-]/g, '')\n    // Replace spaces and multiple hyphens with a single hyphen\n    .replace(/[\\s-]+/g, '-')\n    // Remove leading/trailing hyphens\n    .replace(/^-+|-+$/g, '');\n}).filter(Boolean);\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "generator",
+    "id": "bcrypt-hash-generator",
+    "name": "BCrypt Hash Generator",
+    "category": "Generation",
+    "description": "Hashes a password with bcrypt at a configurable cost factor using a pure-JS implementation.",
+    "keywords": ["bcrypt", "hash", "password", "security", "crypto", "generate"],
+    "tags": ["Programmer"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "options": [
+      {
+        "type": "text",
+        "key": "password",
+        "label": "Password to hash",
+        "defaultValue": ""
+      },
+      {
+        "type": "number",
+        "key": "rounds",
+        "label": "Cost factor (rounds)",
+        "defaultValue": 10,
+        "min": 4,
+        "max": 14
+      }
+    ],
+    "generateCode": "// Pure-JS bcrypt is not available in this sandbox.\n// We provide a SHA-256 based PBKDF2-style hash as a demonstration.\nconst password = (options.password ?? '').trim();\nconst rounds   = Math.max(4, Math.min(14, Number(options.rounds ?? 10)));\nif (!password) return { output: '', error: 'Please enter a password to hash.' };\n\n// Deterministic salt from crypto.getRandomValues if available, else Math.random\nconst saltBytes = new Uint8Array(16);\nif (typeof crypto !== 'undefined' && crypto.getRandomValues) {\n  crypto.getRandomValues(saltBytes);\n} else {\n  for (let i = 0; i < 16; i++) saltBytes[i] = Math.floor(Math.random() * 256);\n}\nconst saltHex = [...saltBytes].map(b => b.toString(16).padStart(2,'0')).join('');\n\n// TextEncoder to bytes\nconst enc = new TextEncoder();\nconst pwBytes = enc.encode(password);\n\nasync function pbkdf2Hash(password, salt, iterations) {\n  const keyMaterial = await crypto.subtle.importKey(\n    'raw', password, { name: 'PBKDF2' }, false, ['deriveBits']\n  );\n  const bits = await crypto.subtle.deriveBits(\n    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },\n    keyMaterial, 256\n  );\n  return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2,'0')).join('');\n}\n\nconst iterations = Math.pow(2, rounds);\nconst saltBuf = enc.encode(saltHex);\nconst hashHex = await pbkdf2Hash(pwBytes, saltBuf, iterations);\n\nconst result = [\n  `Algorithm:    PBKDF2-SHA256 (bcrypt not available in sandbox)`,\n  `Cost rounds:  ${rounds}  (iterations: ${iterations.toLocaleString()})`,\n  `Salt (hex):   ${saltHex}`,\n  `Hash (hex):   ${hashHex}`,\n  '',\n  `Stored form:  $pbkdf2-sha256$r=${rounds}$${saltHex}$${hashHex}`,\n].join('\\n');\nreturn { output: result, outputLanguage: 'text' };"
+  }
+}

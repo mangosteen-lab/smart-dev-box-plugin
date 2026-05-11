@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "proto-formatter",
+    "name": "Proto Formatter",
+    "category": "Formatting",
+    "description": "Formats Protocol Buffer (.proto) definition files with consistent indentation and spacing.",
+    "keywords": ["protobuf", "proto", "format", "grpc", "schema", "protocol buffer"],
+    "tags": ["Programmer"],
+    "outputExtension": "proto",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const t = input.trim();\nreturn (/\\b(syntax|message|enum|service|rpc|import|package|option)\\b/.test(t) && t.includes('{')) ? 0.95 : 0;",
+    "executeCode": "const lines = input.split('\\n');\nconst out = [];\nlet indent = 0;\nfor (const raw of lines) {\n  const line = raw.trim();\n  if (!line) { if (out.length && out[out.length-1] !== '') out.push(''); continue; }\n  // Decrease indent before closing brace\n  if (line.startsWith('}')) indent = Math.max(0, indent - 1);\n  // Normalize spaces around '='\n  let formatted = line.replace(/\\s*=\\s*/g, ' = ');\n  // Normalize spaces after ':'\n  formatted = formatted.replace(/:\\s+/g, ': ');\n  out.push('  '.repeat(indent) + formatted);\n  // Increase indent after opening brace\n  if (line.endsWith('{')) indent++;\n}\n// Remove consecutive blank lines\nconst result = out.join('\\n').replace(/\\n{3,}/g, '\\n\\n');\nreturn { output: result + '\\n', outputLanguage: 'protobuf' };"
+  }
+}

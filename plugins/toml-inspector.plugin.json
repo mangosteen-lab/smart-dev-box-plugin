@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "toml-inspector",
+    "name": "TOML Inspector",
+    "category": "Inspection",
+    "description": "Parses TOML and displays key-value pairs in a readable summary with section grouping.",
+    "keywords": ["toml", "config", "parse", "inspect", "key", "value", "settings"],
+    "tags": ["Programmer"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const t = input.trim();\nconst hasSection = /^\\[[\\w.]+\\]$/m.test(t);\nconst hasKV = /^\\w[\\w.-]*\\s*=\\s*.+$/m.test(t);\nreturn (hasKV && hasSection) ? 0.9 : hasKV ? 0.4 : 0;",
+    "executeCode": "const lines = input.split('\\n');\nconst sections = [{ name: '(root)', entries: [] }];\nlet current = sections[0];\n\nfor (const rawLine of lines) {\n  const line = rawLine.trim();\n  if (!line || line.startsWith('#')) continue;\n  const secMatch = line.match(/^\\[([^\\]]+)\\]$/);\n  if (secMatch) {\n    current = { name: secMatch[1], entries: [] };\n    sections.push(current);\n    continue;\n  }\n  const eqIdx = line.indexOf('=');\n  if (eqIdx > 0) {\n    const key = line.slice(0, eqIdx).trim();\n    const val = line.slice(eqIdx + 1).trim();\n    current.entries.push({ key, val });\n  }\n}\n\nconst out = [];\nfor (const sec of sections) {\n  if (sec.entries.length === 0) continue;\n  out.push(`[${sec.name}]`);\n  const maxKey = Math.max(...sec.entries.map(e => e.key.length));\n  for (const { key, val } of sec.entries) {\n    out.push(`  ${key.padEnd(maxKey)}  =  ${val}`);\n  }\n  out.push('');\n}\nif (out.length === 0) return { output: 'No TOML key-value pairs found.', outputLanguage: 'text' };\nreturn { output: out.join('\\n').trimEnd(), outputLanguage: 'text' };"
+  }
+}

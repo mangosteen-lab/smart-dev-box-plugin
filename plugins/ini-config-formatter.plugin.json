@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "ini-config-formatter",
+    "name": "INI / Config Formatter",
+    "category": "Formatting",
+    "description": "Cleans up .ini and .cfg config files with consistent spacing and section ordering.",
+    "keywords": ["ini", "cfg", "config", "format", "spacing", "sections", "clean"],
+    "tags": ["Programmer"],
+    "outputExtension": "ini",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const t = input.trim();\nconst hasSection = /^\\[\\w[\\w ]*\\]$/m.test(t);\nconst hasKV = /^\\w[\\w.\\-]*\\s*[=:]\\s*.+$/m.test(t);\nreturn (hasKV || hasSection) ? 0.85 : 0;",
+    "executeCode": "const lines = input.split('\\n');\nconst out = [];\nlet prevWasContent = false;\nfor (const raw of lines) {\n  const trimmed = raw.trim();\n  if (!trimmed) {\n    if (prevWasContent) out.push('');\n    prevWasContent = false;\n    continue;\n  }\n  // Comment\n  if (trimmed.startsWith(';') || trimmed.startsWith('#')) {\n    out.push(trimmed);\n    prevWasContent = true;\n    continue;\n  }\n  // Section header\n  if (/^\\[.+\\]$/.test(trimmed)) {\n    if (out.length > 0 && out[out.length - 1] !== '') out.push('');\n    out.push(trimmed);\n    prevWasContent = true;\n    continue;\n  }\n  // Key = value or Key : value\n  const m = trimmed.match(/^([^=:]+)([=:])(.*)$/);\n  if (m) {\n    const key = m[1].trimEnd();\n    const sep = m[2];\n    const val = m[3].trimStart();\n    out.push(`${key} ${sep} ${val}`);\n    prevWasContent = true;\n    continue;\n  }\n  out.push(trimmed);\n  prevWasContent = true;\n}\nwhile (out.length && !out[out.length - 1]) out.pop();\nreturn { output: out.join('\\n') + '\\n', outputLanguage: 'ini' };"
+  }
+}

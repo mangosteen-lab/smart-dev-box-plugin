@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "graphql-formatter",
+    "name": "GraphQL Formatter",
+    "category": "Formatting",
+    "description": "Pretty-prints GraphQL queries, mutations, and fragments with consistent indentation.",
+    "keywords": ["graphql", "format", "pretty", "gql", "query", "mutation", "indent"],
+    "tags": ["Programmer"],
+    "outputExtension": "graphql",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const t = input.trim();\nreturn (/\\b(query|mutation|subscription|fragment|type|schema|interface|enum|input)\\b/.test(t) && t.includes('{')) ? 0.92 : 0;",
+    "executeCode": "// Simple GraphQL formatter\nconst tokens = input.replace(/,\\s*/g, '\\n').split('').reduce((acc, ch) => {\n  if (ch === '{') { acc.push(ch); acc.push('__NEWLINE__'); }\n  else if (ch === '}') { acc.push('__NEWLINE__'); acc.push(ch); acc.push('__NEWLINE__'); }\n  else acc.push(ch);\n  return acc;\n}, []).join('');\n\nconst rawLines = tokens.split('__NEWLINE__').map(l => l.trim()).filter((l, i, a) => l || (a[i-1] && a[i+1]));\nlet indent = 0;\nconst out = [];\nfor (const line of rawLines) {\n  if (!line) continue;\n  if (line.startsWith('}')) indent = Math.max(0, indent - 1);\n  out.push('  '.repeat(indent) + line);\n  if (line.endsWith('{')) indent++;\n}\n// Clean up comments\nconst result = out.join('\\n').replace(/\\n{3,}/g, '\\n\\n');\nreturn { output: result, outputLanguage: 'graphql' };"
+  }
+}

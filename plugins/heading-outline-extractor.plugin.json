@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "heading-outline-extractor",
+    "name": "Heading & Outline Extractor",
+    "category": "Inspection",
+    "description": "Pulls all Markdown or HTML headings into a clean document outline.",
+    "keywords": ["heading", "outline", "markdown", "html", "toc", "structure"],
+    "tags": ["Student", "Office Worker", "Programmer"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const hasMdH = /^#{1,6}\\s/m.test(input);\nconst hasHtmlH = /<h[1-6][^>]*>/i.test(input);\nreturn (hasMdH || hasHtmlH) ? 0.95 : 0;",
+    "executeCode": "const lines = input.split('\\n');\nconst outline = [];\nfor (const line of lines) {\n  // Markdown headings\n  const mdMatch = line.match(/^(#{1,6})\\s+(.+)/);\n  if (mdMatch) {\n    const level = mdMatch[1].length;\n    const text = mdMatch[2].replace(/#{1,6}\\s*$/, '').trim(); // strip trailing hashes\n    outline.push({ level, text });\n    continue;\n  }\n  // HTML headings\n  const htmlMatch = line.match(/<h([1-6])[^>]*>([^<]*)<\\/h\\1>/i);\n  if (htmlMatch) {\n    const level = parseInt(htmlMatch[1], 10);\n    const text = htmlMatch[2].trim();\n    outline.push({ level, text });\n  }\n}\nif (outline.length === 0) {\n  return { output: 'No headings found.', outputLanguage: 'text' };\n}\nconst minLevel = Math.min(...outline.map(h => h.level));\nconst result = outline.map(h => {\n  const indent = '  '.repeat(h.level - minLevel);\n  return `${indent}${'H' + h.level}  ${h.text}`;\n}).join('\\n');\nreturn { output: result, outputLanguage: 'text' };"
+  }
+}

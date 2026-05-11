@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "generator",
+    "id": "number-sequence-generator",
+    "name": "Number Sequence Generator",
+    "category": "Generation",
+    "description": "Generates arithmetic, geometric, Fibonacci, or random integer sequences.",
+    "keywords": ["number", "sequence", "arithmetic", "geometric", "fibonacci", "random", "generate"],
+    "tags": ["Programmer", "Student"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "options": [
+      {
+        "type": "select",
+        "key": "type",
+        "label": "Sequence Type",
+        "defaultValue": "arithmetic",
+        "choices": ["arithmetic", "geometric", "fibonacci", "random"]
+      },
+      {
+        "type": "number",
+        "key": "start",
+        "label": "Start",
+        "defaultValue": 1
+      },
+      {
+        "type": "number",
+        "key": "step",
+        "label": "Step / Ratio (arithmetic/geometric)",
+        "defaultValue": 1
+      },
+      {
+        "type": "number",
+        "key": "count",
+        "label": "Count",
+        "defaultValue": 10,
+        "min": 1,
+        "max": 100
+      },
+      {
+        "type": "number",
+        "key": "min",
+        "label": "Min (random only)",
+        "defaultValue": 1
+      },
+      {
+        "type": "number",
+        "key": "max",
+        "label": "Max (random only)",
+        "defaultValue": 100
+      }
+    ],
+    "generateCode": "const type  = options.type  ?? 'arithmetic';\nconst start = Number(options.start ?? 1);\nconst step  = Number(options.step  ?? 1);\nconst count = Math.max(1, Math.min(100, Number(options.count ?? 10)));\nconst minR  = Number(options.min ?? 1);\nconst maxR  = Number(options.max ?? 100);\nconst seq = [];\nif (type === 'arithmetic') {\n  for (let i = 0; i < count; i++) seq.push(start + i * step);\n} else if (type === 'geometric') {\n  const ratio = step === 0 ? 1 : step;\n  for (let i = 0; i < count; i++) seq.push(start * Math.pow(ratio, i));\n} else if (type === 'fibonacci') {\n  let a = start, b = step === 0 ? 1 : step;\n  seq.push(a);\n  if (count > 1) seq.push(b);\n  for (let i = 2; i < count; i++) { const c = a + b; seq.push(c); a = b; b = c; }\n} else {\n  for (let i = 0; i < count; i++) seq.push(Math.floor(Math.random() * (maxR - minR + 1)) + minR);\n}\nreturn { output: seq.join(', '), outputLanguage: 'text' };"
+  }
+}

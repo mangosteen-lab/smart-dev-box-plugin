@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "docker-compose-inspector",
+    "name": "Docker Compose Inspector",
+    "category": "Inspection",
+    "description": "Summarizes services, ports, volumes, environment variables, and dependencies from a Docker Compose file.",
+    "keywords": ["docker", "compose", "services", "ports", "volumes", "yaml", "devops"],
+    "tags": ["Programmer"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const t = input.trim();\nreturn /^\\s*services\\s*:/m.test(t) && /^\\s{2,}\\w[\\w-]*\\s*:/m.test(t) ? 0.95 : 0;",
+    "executeCode": "// Minimal YAML parser for Docker Compose\nconst lines = input.split('\\n');\nconst services = {};\nlet currentService = null;\nlet currentSection = null;\nlet inServices = false;\n\nfor (let i = 0; i < lines.length; i++) {\n  const line = lines[i];\n  const indent = line.match(/^(\\s*)/)[1].length;\n  const trimmed = line.trim();\n  if (!trimmed || trimmed.startsWith('#')) continue;\n\n  if (trimmed === 'services:') { inServices = true; continue; }\n  if (inServices && indent === 2 && /^[\\w-]+:\\s*$/.test(trimmed)) {\n    currentService = trimmed.replace(':', '').trim();\n    services[currentService] = { ports: [], volumes: [], env: [], depends: [], image: '', build: '' };\n    currentSection = null;\n    continue;\n  }\n  if (!currentService) continue;\n  if (trimmed.startsWith('image:')) {\n    services[currentService].image = trimmed.replace('image:', '').trim();\n  } else if (trimmed.startsWith('build:')) {\n    services[currentService].build = trimmed.replace('build:', '').trim() || '.';\n  } else if (trimmed === 'ports:') { currentSection = 'ports'; }\n  else if (trimmed === 'volumes:') { currentSection = 'volumes'; }\n  else if (trimmed === 'environment:') { currentSection = 'env'; }\n  else if (trimmed === 'depends_on:') { currentSection = 'depends'; }\n  else if (trimmed.startsWith('-') && currentSection) {\n    services[currentService][currentSection].push(trimmed.slice(1).trim());\n  } else if (!/^-/.test(trimmed) && trimmed.includes(':') && indent === 4) {\n    currentSection = null;\n  }\n}\n\nconst out = [];\nfor (const [name, s] of Object.entries(services)) {\n  out.push(`Service: ${name}`);\n  if (s.image)   out.push(`  Image:   ${s.image}`);\n  if (s.build)   out.push(`  Build:   ${s.build}`);\n  if (s.ports.length)   out.push(`  Ports:   ${s.ports.join(', ')}`);\n  if (s.volumes.length) out.push(`  Volumes: ${s.volumes.join(', ')}`);\n  if (s.env.length) {\n    out.push('  Env vars:');\n    s.env.forEach(e => out.push('    ' + e));\n  }\n  if (s.depends.length) out.push(`  Depends on: ${s.depends.join(', ')}`);\n  out.push('');\n}\nreturn { output: out.join('\\n').trimEnd(), outputLanguage: 'text' };"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "passive-voice-detector",
+    "name": "Passive Voice Detector",
+    "category": "Text",
+    "description": "Flags sentences using passive voice constructions and provides a pass/fail ratio.",
+    "keywords": ["passive", "voice", "grammar", "writing", "style", "checker"],
+    "tags": ["Student", "Office Worker"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const words = input.trim().split(/\\s+/).length;\nreturn words > 10 ? 0.75 : 0;",
+    "executeCode": "const BE_FORMS = /\\b(am|is|are|was|were|be|been|being)\\b/i;\nconst PAST_PARTICIPLE = /\\b(\\w+ed|\\w+en|built|bought|brought|caught|come|dealt|done|drawn|drunk|driven|eaten|fallen|felt|found|given|gone|got|grown|heard|held|kept|known|led|left|lent|lost|made|meant|met|paid|put|read|run|said|seen|sent|shown|shut|slept|spent|spoken|stood|taken|taught|told|thought|understood|won|written|broken|chosen|frozen|stolen|begun|rung|sung|swum|thrown)\\b/i;\n\n// Split into sentences\nconst sentences = input.match(/[^.!?]+[.!?]+/g) || [input];\nconst passive = [];\nconst active  = [];\n\nfor (const s of sentences) {\n  const trimmed = s.trim();\n  if (!trimmed) continue;\n  // Heuristic: contains a be-form followed within 3 words by a past participle\n  const words = trimmed.split(/\\s+/);\n  let found = false;\n  for (let i = 0; i < words.length - 1; i++) {\n    if (BE_FORMS.test(words[i])) {\n      for (let j = i + 1; j <= Math.min(i + 3, words.length - 1); j++) {\n        if (PAST_PARTICIPLE.test(words[j])) {\n          found = true;\n          break;\n        }\n      }\n    }\n    if (found) break;\n  }\n  if (found) passive.push(trimmed);\n  else active.push(trimmed);\n}\n\nconst total = passive.length + active.length;\nconst pct = total > 0 ? Math.round(passive.length / total * 100) : 0;\nconst lines = [\n  `Passive voice: ${passive.length} / ${total} sentences (${pct}%)`,\n  `Result: ${pct <= 10 ? 'PASS' : pct <= 25 ? 'ACCEPTABLE' : 'FAIL'} (target ≤ 10%)`,\n  '',\n];\nif (passive.length > 0) {\n  lines.push('Flagged sentences:');\n  passive.forEach((s, i) => lines.push(`  ${i + 1}. ${s}`));\n}\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+  }
+}

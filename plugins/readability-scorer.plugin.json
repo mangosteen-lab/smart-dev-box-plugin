@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "readability-scorer",
+    "name": "Readability Scorer",
+    "category": "Inspection",
+    "description": "Computes Flesch Reading Ease and Flesch-Kincaid Grade Level for any prose block.",
+    "keywords": ["readability", "flesch", "kincaid", "grade", "ease", "score"],
+    "tags": ["Student", "Office Worker"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "const words = input.trim().split(/\\s+/).filter(Boolean).length;\nreturn words > 20 ? Math.min(0.85, 0.4 + words / 1000) : 0;",
+    "executeCode": "function countSyllables(word) {\n  word = word.toLowerCase().replace(/[^a-z]/g, '');\n  if (!word) return 1;\n  if (word.length <= 3) return 1;\n  word = word.replace(/e$/, '');\n  const matches = word.match(/[aeiou]+/g);\n  return matches ? Math.max(1, matches.length) : 1;\n}\nconst text = input.trim();\nconst sentences = (text.match(/[^.!?]+[.!?]+/g) || [text]).filter(s => s.trim().length > 0);\nconst wordList = text.match(/\\b[a-zA-Z']+\\b/g) || [];\nconst totalWords = wordList.length;\nconst totalSentences = sentences.length;\nconst totalSyllables = wordList.reduce((sum, w) => sum + countSyllables(w), 0);\n\nif (totalWords === 0 || totalSentences === 0) {\n  return { output: 'Not enough text to analyze.', outputLanguage: 'text' };\n}\n\nconst fleschEase = 206.835\n  - 1.015  * (totalWords / totalSentences)\n  - 84.6   * (totalSyllables / totalWords);\nconst fkGrade = 0.39 * (totalWords / totalSentences)\n              + 11.8 * (totalSyllables / totalWords)\n              - 15.59;\n\nfunction easeLabel(score) {\n  if (score >= 90) return 'Very Easy (5th grade)';\n  if (score >= 80) return 'Easy (6th grade)';\n  if (score >= 70) return 'Fairly Easy (7th grade)';\n  if (score >= 60) return 'Standard (8th-9th grade)';\n  if (score >= 50) return 'Fairly Difficult (10th-12th)';\n  if (score >= 30) return 'Difficult (College)';\n  return 'Very Confusing (Professional)';\n}\n\nconst lines = [\n  'Statistics:',\n  '  Words:          ' + totalWords,\n  '  Sentences:      ' + totalSentences,\n  '  Syllables:      ' + totalSyllables,\n  '  Avg words/sent: ' + (totalWords / totalSentences).toFixed(1),\n  '  Avg syllables/word: ' + (totalSyllables / totalWords).toFixed(2),\n  '',\n  'Flesch Reading Ease:    ' + fleschEase.toFixed(1) + ' — ' + easeLabel(fleschEase),\n  'Flesch-Kincaid Grade:   ' + Math.max(0, fkGrade).toFixed(1),\n];\nreturn { output: lines.join('\\n'), outputLanguage: 'text' };"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "generator",
+    "id": "fake-credit-card-generator",
+    "name": "Fake Credit Card Generator",
+    "category": "Generation",
+    "description": "Generates Luhn-valid test card numbers for major networks (Visa, Mastercard, Amex) — for testing only.",
+    "keywords": ["credit card", "test", "luhn", "visa", "mastercard", "amex", "fake", "mock"],
+    "tags": ["Programmer"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "options": [
+      {
+        "type": "select",
+        "key": "network",
+        "label": "Card Network",
+        "defaultValue": "all",
+        "choices": ["all", "visa", "mastercard", "amex", "discover"]
+      },
+      {
+        "type": "number",
+        "key": "count",
+        "label": "Count per network",
+        "defaultValue": 3,
+        "min": 1,
+        "max": 10
+      }
+    ],
+    "generateCode": "// Luhn algorithm\nfunction luhnComplete(partial) {\n  const digits = partial.split('').map(Number);\n  // Calculate check digit\n  let sum = 0;\n  let double = true;\n  for (let i = digits.length - 1; i >= 0; i--) {\n    let d = digits[i];\n    if (double) { d *= 2; if (d > 9) d -= 9; }\n    sum += d;\n    double = !double;\n  }\n  const check = (10 - (sum % 10)) % 10;\n  return partial + check;\n}\n\nfunction randDigits(n) {\n  return Array.from({length: n}, () => Math.floor(Math.random() * 10)).join('');\n}\n\nconst NETWORKS = {\n  visa:       { prefix: ['4'], len: 16 },\n  mastercard: { prefix: ['51','52','53','54','55'], len: 16 },\n  amex:       { prefix: ['34','37'], len: 15 },\n  discover:   { prefix: ['6011','65'], len: 16 },\n};\n\nconst network = options.network ?? 'all';\nconst count = Math.max(1, Math.min(10, Number(options.count ?? 3)));\nconst targets = network === 'all' ? Object.keys(NETWORKS) : [network];\n\nconst lines = ['TEST CARD NUMBERS — FOR TESTING ONLY — NOT REAL CARDS', ''];\nfor (const net of targets) {\n  const cfg = NETWORKS[net];\n  if (!cfg) continue;\n  lines.push(net.toUpperCase() + ':');\n  for (let i = 0; i < count; i++) {\n    const prefix = cfg.prefix[Math.floor(Math.random() * cfg.prefix.length)];\n    const partial = prefix + randDigits(cfg.len - prefix.length - 1);\n    const card = luhnComplete(partial);\n    const expM = String(Math.floor(Math.random()*12)+1).padStart(2,'0');\n    const expY = String(new Date().getFullYear() + 1 + Math.floor(Math.random()*4)).slice(-2);\n    const cvv = randDigits(net === 'amex' ? 4 : 3);\n    lines.push(`  ${card}  Exp: ${expM}/${expY}  CVV: ${cvv}`);\n  }\n  lines.push('');\n}\nreturn { output: lines.join('\\n').trimEnd(), outputLanguage: 'text' };"
+  }
+}

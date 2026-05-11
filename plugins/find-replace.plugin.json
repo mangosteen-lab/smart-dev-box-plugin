@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "author": "Mangosteen Tech",
+  "plugin": {
+    "type": "detector",
+    "id": "find-replace",
+    "name": "Find & Replace",
+    "category": "Text",
+    "description": "Multi-pattern find and replace. Define rules as lines of 'find -> replace', then a '---' delimiter, then the text to process. Supports regex with the /regex/flags syntax.",
+    "keywords": ["find", "replace", "regex", "substitution", "text", "transform"],
+    "tags": ["Programmer", "Office Worker", "Student"],
+    "outputExtension": "txt",
+    "updatedAt": "2026-05-12T00:00:00.000Z",
+    "detectCode": "return /^.+->.*$/m.test(input) && /^-{3,}$/m.test(input) ? 0.92 : 0;",
+    "executeCode": "const parts = input.split(/^-{3,}$/m);\nif (parts.length < 2) {\n  return { output: '', error: 'Format: rules (one per line: find -> replace), then ---, then the text to process.' };\n}\nconst rulesRaw = parts[0].trim().split('\\n').filter(l => l.includes('->'));\nconst text = parts.slice(1).join('---');\nlet result = text;\nlet appliedCount = 0;\nconst log = [];\nfor (const rule of rulesRaw) {\n  const arrowIdx = rule.indexOf('->');\n  const lhs = rule.slice(0, arrowIdx).trim();\n  const rhs = rule.slice(arrowIdx + 2).trim();\n  // Check for /regex/flags syntax\n  const reMatch = lhs.match(/^\\/(.+)\\/([gimsuy]*)$/);\n  if (reMatch) {\n    try {\n      const re = new RegExp(reMatch[1], reMatch[2] || 'g');\n      const before = result;\n      result = result.replace(re, rhs);\n      const n = (before.match(re) || []).length;\n      log.push(`[regex] /${reMatch[1]}/${reMatch[2]} → \"${rhs}\" (${n} match${n===1?'':'es'})`);\n      appliedCount += n;\n    } catch (e) {\n      log.push(`[error] Invalid regex \"${lhs}\": ${e.message}`);\n    }\n  } else {\n    let count = 0;\n    result = result.split(lhs).join(rhs);\n    count = (text.split(lhs).length - 1);\n    log.push(`[literal] \"${lhs}\" → \"${rhs}\" (${count} match${count===1?'':'es'})`);\n    appliedCount += count;\n  }\n}\nconst header = log.join('\\n') + '\\n\\n--- Result ---\\n';\nreturn { output: header + result, outputLanguage: 'text' };"
+  }
+}
