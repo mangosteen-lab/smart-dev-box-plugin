@@ -552,7 +552,7 @@
     },
     {
       "id": "locale-inspector",
-      "name": "Locale Inspector",
+      "name": "Locale Code Lookup",
       "description": "Detects locale identifiers — locale numbers, Windows LCID, BCP-47 / IETF language tags, or country/language names — and shows the full locale info for each one found.",
       "outputExtension": "txt",
       "updatedAt": "2026-05-14T00:00:00.000Z",
